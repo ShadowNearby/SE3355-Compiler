@@ -20,15 +20,15 @@ class IntAndTable;
 
 class Stm {
 public:
-  virtual int MaxArgs() const = 0;
-  virtual Table *Interp(Table *) const = 0;
+  [[nodiscard]] virtual auto MaxArgs() const -> int = 0;
+  virtual auto Interp(Table *) const -> Table * = 0;
 };
 
 class CompoundStm : public Stm {
 public:
   CompoundStm(Stm *stm1, Stm *stm2) : stm1(stm1), stm2(stm2) {}
-  int MaxArgs() const override;
-  Table *Interp(Table *) const override;
+  [[nodiscard]] auto MaxArgs() const -> int override;
+  auto Interp(Table *) const -> Table * override;
 
 private:
   Stm *stm1, *stm2;
@@ -37,8 +37,8 @@ private:
 class AssignStm : public Stm {
 public:
   AssignStm(std::string id, Exp *exp) : id(std::move(id)), exp(exp) {}
-  int MaxArgs() const override;
-  Table *Interp(Table *) const override;
+  [[nodiscard]] auto MaxArgs() const -> int override;
+  auto Interp(Table *) const -> Table * override;
 
 private:
   std::string id;
@@ -48,23 +48,27 @@ private:
 class PrintStm : public Stm {
 public:
   explicit PrintStm(ExpList *exps) : exps(exps) {}
-  int MaxArgs() const override;
-  Table *Interp(Table *) const override;
+  [[nodiscard]] auto MaxArgs() const -> int override;
+  auto Interp(Table *) const -> Table * override;
 
 private:
   ExpList *exps;
 };
 
 class Exp {
-  // TODO: you'll have to add some definitions here (lab1).
   // Hints: You may add interfaces like `int MaxArgs()`,
   //        and ` IntAndTable *Interp(Table *)`
+public:
+  [[nodiscard]] virtual auto MaxArgs() const -> int = 0;
+  virtual auto Interp(Table *) -> IntAndTable * = 0;
 };
 
 class IdExp : public Exp {
 public:
   explicit IdExp(std::string id) : id(std::move(id)) {}
-  // TODO: you'll have to add some definitions here (lab1).
+
+  [[nodiscard]] auto MaxArgs() const -> int override;
+  auto Interp(Table *) -> IntAndTable * override;
 
 private:
   std::string id;
@@ -73,7 +77,8 @@ private:
 class NumExp : public Exp {
 public:
   explicit NumExp(int num) : num(num) {}
-  // TODO: you'll have to add some definitions here.
+  [[nodiscard]] auto MaxArgs() const -> int override;
+  auto Interp(Table *) -> IntAndTable * override;
 
 private:
   int num;
@@ -83,6 +88,8 @@ class OpExp : public Exp {
 public:
   OpExp(Exp *left, BinOp oper, Exp *right)
       : left(left), oper(oper), right(right) {}
+  [[nodiscard]] auto MaxArgs() const -> int override;
+  auto Interp(Table *) -> IntAndTable * override;
 
 private:
   Exp *left;
@@ -93,6 +100,8 @@ private:
 class EseqExp : public Exp {
 public:
   EseqExp(Stm *stm, Exp *exp) : stm(stm), exp(exp) {}
+  [[nodiscard]] auto MaxArgs() const -> int override;
+  auto Interp(Table *) -> IntAndTable * override;
 
 private:
   Stm *stm;
@@ -101,15 +110,21 @@ private:
 
 class ExpList {
 public:
-  // TODO: you'll have to add some definitions here (lab1).
   // Hints: You may add interfaces like `int MaxArgs()`, `int NumExps()`,
   //        and ` IntAndTable *Interp(Table *)`
+public:
+  [[nodiscard]] virtual auto MaxArgs() const -> int = 0;
+  [[nodiscard]] virtual auto NumExps() const -> int = 0;
+  virtual auto Interp(Table *) -> IntAndTable * = 0;
 };
 
 class PairExpList : public ExpList {
 public:
   PairExpList(Exp *exp, ExpList *tail) : exp(exp), tail(tail) {}
-  // TODO: you'll have to add some definitions here (lab1).
+  [[nodiscard]] auto MaxArgs() const -> int override;
+  [[nodiscard]] auto NumExps() const -> int override;
+  auto Interp(Table *) -> IntAndTable * override;
+
 private:
   Exp *exp;
   ExpList *tail;
@@ -118,7 +133,10 @@ private:
 class LastExpList : public ExpList {
 public:
   explicit LastExpList(Exp *exp) : exp(exp) {}
-  // TODO: you'll have to add some definitions here (lab1).
+  [[nodiscard]] auto MaxArgs() const -> int override;
+  [[nodiscard]] auto NumExps() const -> int override;
+  auto Interp(Table *) -> IntAndTable * override;
+
 private:
   Exp *exp;
 };
@@ -127,8 +145,8 @@ class Table {
 public:
   Table(std::string id, int value, const Table *tail)
       : id(std::move(id)), value(value), tail(tail) {}
-  int Lookup(const std::string &key) const;
-  Table *Update(const std::string &key, int val) const;
+  [[nodiscard]] int Lookup(const std::string &key) const;
+  [[nodiscard]] Table *Update(const std::string &key, int val) const;
 
 private:
   std::string id;
