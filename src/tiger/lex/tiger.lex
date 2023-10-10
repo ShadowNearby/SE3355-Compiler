@@ -5,7 +5,6 @@
   */
 
  /* You can add lex definitions here. */
- /* TODO: Put your lab2 code here */
 
 %x COMMENT STR IGNORE
 
@@ -63,7 +62,6 @@
 
  /* reserved words */
 
- /* TODO: Put your lab2 code here */
 "," {adjust(); return Parser::COMMA;}
 ":" {adjust(); return Parser::COLON;}
 ";" {adjust(); return Parser::SEMICOLON;}
