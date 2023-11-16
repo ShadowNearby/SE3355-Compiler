@@ -42,7 +42,6 @@ void CallExp::Traverse(esc::EscEnvPtr env, int depth) {
 }
 
 void OpExp::Traverse(esc::EscEnvPtr env, int depth) {
-  /* TODO: Put your lab5 code here */
   left_->Traverse(env, depth);
   right_->Traverse(env, depth);
 }
