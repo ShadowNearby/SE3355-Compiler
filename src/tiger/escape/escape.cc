@@ -1,5 +1,6 @@
 #include "tiger/escape/escape.h"
 #include "tiger/absyn/absyn.h"
+#include <iostream>
 
 namespace esc {
 void EscFinder::FindEscape() { absyn_tree_->Traverse(env_.get()); }
@@ -77,8 +78,8 @@ void WhileExp::Traverse(esc::EscEnvPtr env, int depth) {
 }
 
 void ForExp::Traverse(esc::EscEnvPtr env, int depth) {
-  bool escape = false;
-  env->Enter(var_, new esc::EscapeEntry(depth, &(escape)));
+  escape_ = false;
+  env->Enter(var_, new esc::EscapeEntry(depth, &(escape_)));
   lo_->Traverse(env, depth);
   hi_->Traverse(env, depth);
   body_->Traverse(env, depth);
@@ -114,8 +115,8 @@ void FunctionDec::Traverse(esc::EscEnvPtr env, int depth) {
 }
 
 void VarDec::Traverse(esc::EscEnvPtr env, int depth) {
-  bool escape = false;
-  env->Enter(var_, new esc::EscapeEntry(depth, &escape));
+  escape_ = false;
+  env->Enter(var_, new esc::EscapeEntry(depth, &escape_));
   init_->Traverse(env, depth);
 }
 

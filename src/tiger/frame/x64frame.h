@@ -87,7 +87,11 @@ public:
 class X64Frame : public Frame {
   /* TODO: Put your lab5 code here */
 public:
-  explicit X64Frame(temp::Label *label) : Frame(label) {}
+  explicit X64Frame(temp::Label *label, const std::list<bool> &formals)
+      : Frame(label) {
+    NewFrame(formals);
+  }
+
   frame::Access *AllocLocal(bool escape) override {
     if (escape) {
       offset_ -= 8;
@@ -95,15 +99,13 @@ public:
     }
     return new InRegAccess(temp::TempFactory::NewTemp());
   }
-};
 
-frame::Frame *NewFrame(temp::Label *label, const std::list<bool> &formals) {
-  Frame *frame = new X64Frame(label);
-  for (const auto escape : formals) {
-    frame->formals_.emplace_back(frame->AllocLocal(escape));
+  void NewFrame(const std::list<bool> &formals) {
+    for (const auto escape : formals) {
+      this->formals_.emplace_back(this->AllocLocal(escape));
+    }
   }
-  return frame;
-}
+};
 
 } // namespace frame
 #endif // TIGER_COMPILER_X64FRAME_H

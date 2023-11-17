@@ -2,6 +2,7 @@
 
 #include <tiger/absyn/absyn.h>
 
+#include <iostream>
 #include <utility>
 
 #include "tiger/env/env.h"
@@ -95,9 +96,10 @@ void ProgTr::Translate() { /* TODO: Put your lab5 code here */
   absyn_tree_->Translate(
       venv_.get(), tenv_.get(),
       new tr::Level(
-          new frame::X64Frame(temp::LabelFactory::NamedLabel("__main__")),
+          new frame::X64Frame(temp::LabelFactory::NamedLabel("__main__"), {}),
           nullptr),
       temp::LabelFactory::NamedLabel("__main__"), errormsg_.get());
+  //  std::cout << "main" << std::endl;
 }
 
 } // namespace tr
@@ -109,12 +111,25 @@ tr::ExpAndTy *AbsynTree::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
   root_->Translate(venv, tenv, level, label, errormsg);
+  //  std::cout << "123456789" << std::endl;
 }
 
 tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
+  auto entry = venv->Look(sym_);
+  auto var_entry = dynamic_cast<env::VarEntry *>(entry);
+  auto target_level = var_entry->access_->level_;
+  auto curr_level = level;
+  auto staticlink = new tree::TempExp(reg_manager->FramePointer());
+  while (curr_level != target_level) {
+    staticlink = dynamic_cast<tree::TempExp *>(
+        curr_level->frame_->formals_.front()->ToExp(staticlink));
+    curr_level = curr_level->parent_;
+  }
+  staticlink = dynamic_cast<tree::TempExp *>(
+      var_entry->access_->access_->ToExp(staticlink));
   return nullptr;
 }
 
