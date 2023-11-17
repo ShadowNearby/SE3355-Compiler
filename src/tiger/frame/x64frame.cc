@@ -3,27 +3,39 @@
 extern frame::RegManager *reg_manager;
 
 namespace frame {
-/* TODO: Put your lab5 code here */
-class InFrameAccess : public Access {
-public:
-  int offset;
 
-  explicit InFrameAccess(int offset) : offset(offset) {}
-  /* TODO: Put your lab5 code here */
-};
+temp::TempList *X64RegManager::Registers() {
+  static auto *list = new temp::TempList{rax, rdi, rsi, rdx, rcx, r8,  r9, r10,
+                                         r11, rbx, rbp, r12, r13, r14, r15};
+  return list;
+}
 
+temp::TempList *X64RegManager::ArgRegs() {
+  static auto *list = new temp::TempList{rdi, rsi, rdx, rcx, r8, r9};
+  return list;
+}
 
-class InRegAccess : public Access {
-public:
-  temp::Temp *reg;
+temp::TempList *X64RegManager::CallerSaves() {
+  static auto *list =
+      new temp::TempList{rax, rdi, rsi, rdx, rcx, r8, r9, r10, r11};
+  return list;
+}
 
-  explicit InRegAccess(temp::Temp *reg) : reg(reg) {}
-  /* TODO: Put your lab5 code here */
-};
+temp::TempList *X64RegManager::CalleeSaves() {
+  static auto *list = new temp::TempList{rbx, rbp, r12, r13, r14, r15};
+  return list;
+}
 
-class X64Frame : public Frame {
-  /* TODO: Put your lab5 code here */
-};
+temp::TempList *X64RegManager::ReturnSink() { return nullptr; }
+
+int X64RegManager::WordSize() { return 8; }
+
+temp::Temp *X64RegManager::FramePointer() { return rbp; }
+
+temp::Temp *X64RegManager::StackPointer() { return rsp; }
+
+temp::Temp *X64RegManager::ReturnValue() { return rax; }
+
 /* TODO: Put your lab5 code here */
 
 } // namespace frame

@@ -64,6 +64,7 @@ public:
   [[nodiscard]] virtual temp::Temp *ReturnValue() = 0;
 
   temp::Map *temp_map_;
+
 protected:
   std::vector<temp::Temp *> regs_;
 };
@@ -71,13 +72,29 @@ protected:
 class Access {
 public:
   /* TODO: Put your lab5 code here */
-  
+  enum class AccessType { REG, FRAME };
+
+  explicit Access(AccessType type) : type_(type) {}
+
+  virtual tree::Exp *ToExp(tree::Exp *framePtr) const = 0;
+
   virtual ~Access() = default;
-  
+
+  AccessType type_;
 };
 
 class Frame {
   /* TODO: Put your lab5 code here */
+public:
+  virtual ~Frame() = default;
+
+  virtual frame::Access *AllocLocal(bool escape) = 0;
+
+  explicit Frame(temp::Label *label) : label_(label), offset_(-8), formals_{} {}
+
+  int offset_;
+  temp::Label *label_;
+  std::list<frame::Access *> formals_;
 };
 
 /**
