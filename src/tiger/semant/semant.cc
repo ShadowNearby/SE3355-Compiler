@@ -281,12 +281,13 @@ type::Ty *LetExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
   for (const auto dec : decs_->GetList()) {
     dec->SemAnalyze(venv, tenv, labelcount, errormsg);
   }
+  auto *ret_ty = reinterpret_cast<type::Ty *>(type::VoidTy::Instance());
   if (body_ != nullptr) {
-    body_->SemAnalyze(venv, tenv, labelcount, errormsg);
+    ret_ty = body_->SemAnalyze(venv, tenv, labelcount, errormsg);
   }
   tenv->EndScope();
   venv->EndScope();
-  return type::VoidTy::Instance();
+  return ret_ty;
 }
 
 type::Ty *ArrayExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -455,4 +456,4 @@ void ProgSem::SemAnalyze() {
   absyn_tree_->SemAnalyze(venv_.get(), tenv_.get(), errormsg_.get());
 }
 
-} // namespace tr
+} // namespace sem
