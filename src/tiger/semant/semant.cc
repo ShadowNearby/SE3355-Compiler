@@ -29,7 +29,7 @@ type::Ty *FieldVar::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
   auto record = dynamic_cast<type::RecordTy *>(var_ty);
   for (const auto field : record->fields_->GetList()) {
     if (field->name_->Name() == sym_->Name()) {
-      return record;
+      return field->ty_;
     }
   }
   errormsg->Error(pos_, "field %s doesn't exist", sym_->Name().c_str());
