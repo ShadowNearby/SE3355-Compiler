@@ -178,9 +178,10 @@ private:
 };
 
 /* TODO: Put your lab5 code here */
-assem::Proc *ProcEntryExit3(Frame *pFrame, assem::InstrList *pList);
-assem::Proc *ProcEntryExit2(Frame *pFrame, assem::InstrList *pList);
+assem::Proc *ProcEntryExit3(Frame *frame, assem::InstrList *body);
+assem::InstrList *ProcEntryExit2(assem::InstrList *body);
 tree::Stm *ProcEntryExit1(Frame *frame, tree::Stm *stm);
+tree::Exp *ExternalCall(const std::string &func_name, tree::ExpList *args);
 } // namespace frame
 
 #endif

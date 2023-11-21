@@ -172,9 +172,10 @@ public:
 
 void ProgTr::Translate() { /* TODO: Put your lab5 code here */
   LOG_DEBUG("begin translate");
-  absyn_tree_->Translate(venv_.get(), tenv_.get(), main_level_.get(),
-                         temp::LabelFactory::NamedLabel("__main__"),
-                         errormsg_.get());
+  auto main = absyn_tree_->Translate(
+      venv_.get(), tenv_.get(), main_level_.get(),
+      temp::LabelFactory::NamedLabel("__main__"), errormsg_.get());
+  frags->PushBack(new frame::ProcFrag(main->exp_->UnNx(), main_level_->frame_));
   LOG_DEBUG("end translate");
 }
 
@@ -371,9 +372,7 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
         left_exp_ty->ty_->IsSameType(type::StringTy::Instance())) {
       auto arg_list = new tree::ExpList{left_exp_ty->exp_->UnEx(),
                                         right_exp_ty->exp_->UnEx()};
-      auto call_exp = new tree::CallExp{
-          new tree::NameExp{temp::LabelFactory::NamedLabel("string_equal")},
-          arg_list};
+      auto call_exp = frame::ExternalCall("string_equal", arg_list);
       auto stm =
           new tree::CjumpStm{tree::EQ_OP, tr::ExExp(call_exp).UnEx(),
                              right_exp_ty->exp_->UnEx(), nullptr, nullptr};
@@ -429,18 +428,17 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   args->Append(new tree::ConstExp((int)fields_->GetList().size() *
                                   reg_manager->WordSize()));
   auto dst = temp::TempFactory::NewTemp();
-  auto call_exp = new tree::CallExp{
-      new tree::NameExp(temp::LabelFactory::NamedLabel("alloc_record")), args};
+  auto call_exp = frame::ExternalCall("alloc_record", args);
   auto move_stm = new tree::MoveStm(new tree::TempExp(dst), call_exp);
   tree::Stm *stm = move_stm;
   auto field_it = exp_list.GetList().cbegin();
   for (int i = 0; i < fields_->GetList().size(); ++i, ++field_it) {
     stm = new tree::SeqStm{
         stm,
-        new tree::MoveStm{
-            new tree::BinopExp(tree::PLUS_OP, new tree::TempExp(dst),
-                               new tree::ConstExp(i * reg_manager->WordSize())),
-            (*field_it)}};
+        new tree::MoveStm{new tree::MemExp(new tree::BinopExp(
+                              tree::PLUS_OP, new tree::TempExp(dst),
+                              new tree::ConstExp(i * reg_manager->WordSize()))),
+                          (*field_it)}};
   }
   return new tr::ExpAndTy{
       new tr::ExExp(new tree::EseqExp{stm, new tree::TempExp(dst)}), record_ty};
@@ -629,8 +627,7 @@ tr::ExpAndTy *ArrayExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   auto args = new tree::ExpList{};
   args->Append(size_exp_ty->exp_->UnEx());
   args->Append(init_exp_ty->exp_->UnEx());
-  auto call_stm = new tree::CallExp{
-      new tree::NameExp(temp::LabelFactory::NamedLabel("init_array")), args};
+  auto call_stm = frame::ExternalCall("init_array", args);
   LOG_DEBUG("end ArrayExp type:%s", debug::PrintTy(ty).c_str());
   return new tr::ExpAndTy(new tr::NxExp(new tree::ExpStm(call_stm)), ty);
 }

@@ -51,7 +51,8 @@ private:
   frame::Frame *frame_;
   std::string fs_; // Frame size label_
   std::unique_ptr<canon::Traces> traces_;
-  std::unique_ptr<AssemInstr> assem_instr_;
+  std::unique_ptr<AssemInstr> assem_instr_{
+      std::make_unique<AssemInstr>(new assem::InstrList())};
 };
 
 } // namespace cg

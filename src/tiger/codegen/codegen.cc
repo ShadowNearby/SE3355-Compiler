@@ -1,5 +1,6 @@
 #include "tiger/codegen/codegen.h"
 
+#include "tiger/util/log.h"
 #include <cassert>
 #include <sstream>
 
@@ -9,12 +10,16 @@ namespace {
 
 constexpr int maxlen = 1024;
 
-
 } // namespace
 
 namespace cg {
 
 void CodeGen::Codegen() {
+  assem::InstrList list{};
+  for (const auto stm : traces_->GetStmList()->GetList()) {
+    stm->Munch(list, fs_);
+  }
+  *assem_instr_->GetInstrList() = list;
   /* TODO: Put your lab5 code here */
 }
 
@@ -30,6 +35,7 @@ namespace tree {
 
 void SeqStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* TODO: Put your lab5 code here */
+  LOG_DEBUG("begin SeqStm");
 }
 
 void LabelStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
@@ -80,7 +86,8 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* TODO: Put your lab5 code here */
 }
 
-temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list, std::string_view fs) {
+temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list,
+                                   std::string_view fs) {
   /* TODO: Put your lab5 code here */
 }
 
