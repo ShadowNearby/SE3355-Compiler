@@ -57,33 +57,6 @@ private:
   temp::Temp *rsp{temp::TempFactory::NewTemp()};
 };
 
-class InFrameAccess : public Access {
-public:
-  int offset;
-
-  explicit InFrameAccess(int offset)
-      : offset(offset), Access(Access::AccessType::FRAME) {}
-
-  tree::Exp *ToExp(tree::Exp *framePtr) const override {
-    return new tree::MemExp(new tree::BinopExp(tree::BinOp::PLUS_OP, framePtr,
-                                               new tree::ConstExp(offset)));
-  }
-  /* TODO: Put your lab5 code here */
-};
-
-class InRegAccess : public Access {
-public:
-  temp::Temp *reg;
-
-  explicit InRegAccess(temp::Temp *reg)
-      : reg(reg), Access(Access::AccessType::REG) {}
-
-  tree::Exp *ToExp(tree::Exp *framePtr) const override {
-    return new tree::TempExp(reg);
-  }
-  /* TODO: Put your lab5 code here */
-};
-
 class X64Frame : public Frame {
   /* TODO: Put your lab5 code here */
 public:

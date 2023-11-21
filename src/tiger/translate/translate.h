@@ -3,11 +3,13 @@
 
 #include <list>
 #include <memory>
+#include <utility>
 
 #include "tiger/absyn/absyn.h"
 #include "tiger/env/env.h"
 #include "tiger/errormsg/errormsg.h"
 #include "tiger/frame/frame.h"
+#include "tiger/frame/x64frame.h"
 #include "tiger/semant/types.h"
 
 namespace tr {
@@ -32,7 +34,7 @@ public:
   }
 
   explicit PatchList(std::list<temp::Label **> patch_list)
-      : patch_list_(patch_list) {}
+      : patch_list_(std::move(patch_list)) {}
   PatchList() = default;
 
   [[nodiscard]] const std::list<temp::Label **> &GetList() const {
@@ -67,7 +69,10 @@ public:
   // TODO: Put your lab5 code here */
   ProgTr(std::unique_ptr<absyn::AbsynTree> absyn_tree,
          std::unique_ptr<err::ErrorMsg> errormsg)
-      : absyn_tree_(std::move(absyn_tree)), errormsg_(std::move(errormsg)) {}
+      : absyn_tree_(std::move(absyn_tree)), errormsg_(std::move(errormsg)) {
+    FillBaseTEnv();
+    FillBaseVEnv();
+  }
   /**
    * Translate IR tree
    */
@@ -84,9 +89,11 @@ public:
 private:
   std::unique_ptr<absyn::AbsynTree> absyn_tree_;
   std::unique_ptr<err::ErrorMsg> errormsg_;
-  std::unique_ptr<Level> main_level_;
-  std::unique_ptr<env::TEnv> tenv_;
-  std::unique_ptr<env::VEnv> venv_;
+  std::unique_ptr<Level> main_level_{new tr::Level(
+      new frame::X64Frame(temp::LabelFactory::NamedLabel("__main__"), {}),
+      nullptr)};
+  std::unique_ptr<env::TEnv> tenv_{std::make_unique<env::TEnv>()};
+  std::unique_ptr<env::VEnv> venv_{std::make_unique<env::VEnv>()};
 
   // Fill base symbol for var env and type env
   void FillBaseVEnv();

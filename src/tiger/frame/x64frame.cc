@@ -37,5 +37,13 @@ temp::Temp *X64RegManager::StackPointer() { return rsp; }
 temp::Temp *X64RegManager::ReturnValue() { return rax; }
 
 /* TODO: Put your lab5 code here */
+assem::Proc *ProcEntryExit3(Frame *pFrame, assem::InstrList *pList) {
+  return nullptr;
+}
+assem::Proc *ProcEntryExit2(Frame *pFrame, assem::InstrList *pList) {
+  return nullptr;
+}
+
+tree::Stm *ProcEntryExit1(Frame *frame, tree::Stm *stm) { return stm; }
 
 } // namespace frame

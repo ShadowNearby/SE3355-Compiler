@@ -5,10 +5,9 @@
 #include <memory>
 #include <string>
 
+#include "tiger/codegen/assem.h"
 #include "tiger/frame/temp.h"
 #include "tiger/translate/tree.h"
-#include "tiger/codegen/assem.h"
-
 
 namespace frame {
 
@@ -83,6 +82,33 @@ public:
   AccessType type_;
 };
 
+class InFrameAccess : public Access {
+public:
+  int offset;
+
+  explicit InFrameAccess(int offset)
+      : offset(offset), Access(Access::AccessType::FRAME) {}
+
+  tree::Exp *ToExp(tree::Exp *framePtr) const override {
+    return new tree::MemExp(new tree::BinopExp(tree::BinOp::PLUS_OP, framePtr,
+                                               new tree::ConstExp(offset)));
+  }
+  /* TODO: Put your lab5 code here */
+};
+
+class InRegAccess : public Access {
+public:
+  temp::Temp *reg;
+
+  explicit InRegAccess(temp::Temp *reg)
+      : reg(reg), Access(Access::AccessType::REG) {}
+
+  tree::Exp *ToExp(tree::Exp *framePtr) const override {
+    return new tree::TempExp(reg);
+  }
+  /* TODO: Put your lab5 code here */
+};
+
 class Frame {
   /* TODO: Put your lab5 code here */
 public:
@@ -90,10 +116,12 @@ public:
 
   virtual frame::Access *AllocLocal(bool escape) = 0;
 
-  explicit Frame(temp::Label *label) : label_(label), offset_(-8), formals_{} {}
+  explicit Frame(temp::Label *label) : name_(label), offset_(-8), formals_{} {}
+
+  [[nodiscard]] auto GetLabel() const { return name_->Name(); }
 
   int offset_;
-  temp::Label *label_;
+  temp::Label *name_;
   std::list<frame::Access *> formals_;
 };
 
@@ -114,7 +142,8 @@ public:
    *Generate assembly for main program
    * @param out FILE object for output assembly file
    */
-  virtual void OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const = 0;
+  virtual void OutputAssem(FILE *out, OutputPhase phase,
+                           bool need_ra) const = 0;
 };
 
 class StringFrag : public Frag {
@@ -142,14 +171,16 @@ class Frags {
 public:
   Frags() = default;
   void PushBack(Frag *frag) { frags_.emplace_back(frag); }
-  const std::list<Frag*> &GetList() { return frags_; }
+  const std::list<Frag *> &GetList() { return frags_; }
 
 private:
-  std::list<Frag*> frags_;
+  std::list<Frag *> frags_;
 };
 
 /* TODO: Put your lab5 code here */
-
+assem::Proc *ProcEntryExit3(Frame *pFrame, assem::InstrList *pList);
+assem::Proc *ProcEntryExit2(Frame *pFrame, assem::InstrList *pList);
+tree::Stm *ProcEntryExit1(Frame *frame, tree::Stm *stm);
 } // namespace frame
 
 #endif
