@@ -174,7 +174,7 @@ void ProgTr::Translate() { /* TODO: Put your lab5 code here */
   LOG_DEBUG("begin translate");
   auto main = absyn_tree_->Translate(
       venv_.get(), tenv_.get(), main_level_.get(),
-      temp::LabelFactory::NamedLabel("__main__"), errormsg_.get());
+      temp::LabelFactory::NamedLabel("tigermain"), errormsg_.get());
   frags->PushBack(new frame::ProcFrag(main->exp_->UnNx(), main_level_->frame_));
   LOG_DEBUG("end translate");
 }
@@ -604,8 +604,9 @@ tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       if (seq_stm == nullptr) {
         seq_stm =
             new tree::SeqStm{new tree::ExpStm(new tree::ConstExp(0)), stm};
+      } else {
+        seq_stm = new tree::SeqStm{seq_stm, stm};
       }
-      seq_stm = new tree::SeqStm{seq_stm, stm};
     }
     auto body_exp_ty = body_->Translate(venv, tenv, level, label, errormsg);
     return new tr::ExpAndTy{
@@ -664,7 +665,8 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     auto fun_entry = dynamic_cast<env::FunEntry *>(venv->Look(fun_dec->name_));
     auto param_it = fun_dec->params_->GetList().cbegin();
     // Warn staticlink
-    auto access_it = fun_entry->level_->frame_->formals_.cbegin()++;
+    auto access_it = fun_entry->level_->frame_->formals_.cbegin();
+    access_it++;
     auto ty_it = fun_entry->formals_->GetList().cbegin();
     for (uint32_t i = 0; i < fun_dec->params_->GetList().size(); ++i) {
       log_param +=

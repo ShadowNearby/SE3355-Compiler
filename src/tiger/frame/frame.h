@@ -116,10 +116,10 @@ public:
 
   virtual frame::Access *AllocLocal(bool escape) = 0;
 
-  explicit Frame(temp::Label *label) : name_(label), offset_(-8), formals_{} {}
+  explicit Frame(temp::Label *label) : name_(label), offset_(0), formals_{} {}
 
-  [[nodiscard]] auto GetLabel() const { return name_->Name(); }
-
+  [[nodiscard]] auto GetLabel() const -> std::string { return name_->Name(); }
+  [[nodiscard]] auto GetSize() const -> int { return -offset_; }
   int offset_;
   temp::Label *name_;
   std::list<frame::Access *> formals_;

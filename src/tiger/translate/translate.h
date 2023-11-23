@@ -90,7 +90,7 @@ private:
   std::unique_ptr<absyn::AbsynTree> absyn_tree_;
   std::unique_ptr<err::ErrorMsg> errormsg_;
   std::unique_ptr<Level> main_level_{new tr::Level(
-      new frame::X64Frame(temp::LabelFactory::NamedLabel("__main__"), {}),
+      new frame::X64Frame(temp::LabelFactory::NamedLabel("tigermain"), {}),
       nullptr)};
   std::unique_ptr<env::TEnv> tenv_{std::make_unique<env::TEnv>()};
   std::unique_ptr<env::VEnv> venv_{std::make_unique<env::VEnv>()};
