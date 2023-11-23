@@ -1,7 +1,5 @@
 #include "tiger/semant/semant.h"
 #include "tiger/absyn/absyn.h"
-#include "tiger/util/log.h"
-#include <iostream>
 #include <set>
 namespace absyn {
 

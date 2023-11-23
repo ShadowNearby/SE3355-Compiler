@@ -11,8 +11,6 @@
 #include "tiger/frame/frame.h"
 #include "tiger/frame/temp.h"
 #include "tiger/frame/x64frame.h"
-#include "tiger/util/log.h"
-#include "translate.h"
 
 extern frame::Frags *frags;
 extern frame::RegManager *reg_manager;
@@ -130,7 +128,6 @@ public:
   }
   [[nodiscard]] tree::Stm *UnNx() override { return stm_; }
   [[nodiscard]] Cx UnCx(err::ErrorMsg *errormsg) override {
-    LOG_ERROR("error transfer Nx to Cx");
     assert(false);
     //    return {PatchList{{}}, PatchList{{}}, nullptr};
   }
@@ -165,12 +162,10 @@ public:
 };
 
 void ProgTr::Translate() {
-  LOG_DEBUG("begin translate");
   auto main = absyn_tree_->Translate(
       venv_.get(), tenv_.get(), main_level_.get(),
       temp::LabelFactory::NamedLabel("tigermain"), errormsg_.get());
   frags->PushBack(new frame::ProcFrag(main->exp_->UnNx(), main_level_->frame_));
-  LOG_DEBUG("end translate");
 }
 
 } // namespace tr
@@ -180,19 +175,14 @@ namespace absyn {
 tr::ExpAndTy *AbsynTree::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
-  LOG_DEBUG("begin root frame %s", level->frame_->name_->Name().c_str());
   return root_->Translate(venv, tenv, level, label, errormsg);
-  LOG_DEBUG("end root");
 }
 
 tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
-  LOG_DEBUG("begin SimpleVar name:%s", sym_->Name().c_str());
   auto var_entry = dynamic_cast<env::VarEntry *>(venv->Look(sym_));
   auto staticlink = GetStaticLink(level, var_entry->access_->level_);
-  LOG_DEBUG("end SimpleVar name:%s type:%s", sym_->Name().c_str(),
-            debug::PrintTy(var_entry->ty_).c_str());
   return new tr::ExpAndTy{
       new tr::ExExp{var_entry->access_->access_->ToExp(staticlink)},
       var_entry->ty_};
@@ -201,7 +191,6 @@ tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::ExpAndTy *FieldVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                   tr::Level *level, temp::Label *label,
                                   err::ErrorMsg *errormsg) const {
-  LOG_DEBUG("begin FieldVar name:%s", sym_->Name().c_str());
   auto var_exp_ty = var_->Translate(venv, tenv, level, label, errormsg);
   auto record_ty = dynamic_cast<type::RecordTy *>(var_exp_ty->ty_->ActualTy());
   type::Ty *res_ty;
@@ -216,14 +205,12 @@ tr::ExpAndTy *FieldVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   auto dst_mem_exp = new tree::MemExp{
       new tree::BinopExp(tree::PLUS_OP, var_exp_ty->exp_->UnEx(),
                          new tree::ConstExp{reg_manager->WordSize() * index})};
-  LOG_DEBUG("begin FieldVar name:%s", sym_->Name().c_str());
   return new tr::ExpAndTy{new tr::ExExp(dst_mem_exp), res_ty};
 }
 
 tr::ExpAndTy *SubscriptVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                       tr::Level *level, temp::Label *label,
                                       err::ErrorMsg *errormsg) const {
-  LOG_DEBUG("begin SubscriptVar");
   auto var_exp_ty = var_->Translate(venv, tenv, level, label, errormsg);
   auto sub_exp_ty = subscript_->Translate(venv, tenv, level, label, errormsg);
   auto dst_mem_exp = new tree::MemExp{new tree::BinopExp(
@@ -231,7 +218,6 @@ tr::ExpAndTy *SubscriptVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       new tree::BinopExp{tree::MUL_OP, sub_exp_ty->exp_->UnEx(),
                          new tree::ConstExp{reg_manager->WordSize()}})};
   auto array_ty = dynamic_cast<type::ArrayTy *>(var_exp_ty->ty_);
-  LOG_DEBUG("begin SubscriptVar");
   return new tr::ExpAndTy{new tr::ExExp(dst_mem_exp),
                           array_ty->ty_->ActualTy()};
 }
@@ -252,7 +238,6 @@ tr::ExpAndTy *NilExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::ExpAndTy *IntExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 tr::Level *level, temp::Label *label,
                                 err::ErrorMsg *errormsg) const {
-  //  LOG_DEBUG("translate Int value:%d", val_);
   return new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(val_)),
                           type::IntTy::Instance());
 }
@@ -263,7 +248,6 @@ tr::ExpAndTy *StringExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   auto new_label = temp::LabelFactory::NewLabel();
   auto str_frag = new frame::StringFrag(new_label, str_);
   frags->PushBack(str_frag);
-  //  LOG_DEBUG("translate String value:%s", str_.c_str());
   return new tr::ExpAndTy(new tr::ExExp(new tree::NameExp(new_label)),
                           type::StringTy::Instance());
 }
@@ -271,10 +255,8 @@ tr::ExpAndTy *StringExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                  tr::Level *level, temp::Label *label,
                                  err::ErrorMsg *errormsg) const {
-  LOG_DEBUG("begin CallExp name:%s", func_->Name().c_str());
   auto fun_entry = dynamic_cast<env::FunEntry *>(venv->Look(func_));
   auto arg_list = new tree::ExpList{};
-  std::string log_arg = "{";
   if (fun_entry->level_->parent_) {
     if (fun_entry->label_ == label) {
       arg_list->Append(level->frame_->formals_.front()->ToExp(
@@ -283,16 +265,10 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       arg_list->Append(GetStaticLink(level, fun_entry->level_->parent_));
     }
   }
-
   for (const auto arg_exp : args_->GetList()) {
     auto arg_exp_ty = arg_exp->Translate(venv, tenv, level, label, errormsg);
     arg_list->Append(arg_exp_ty->exp_->UnEx());
-    log_arg += debug::PrintTy(arg_exp_ty->ty_) + ", ";
   }
-  log_arg = log_arg.substr(0, log_arg.size() - 2);
-  log_arg += "}";
-  LOG_DEBUG("end CallExp name:%s arg:%s return:%s", func_->Name().c_str(),
-            log_arg.c_str(), debug::PrintTy(fun_entry->result_).c_str());
   return new tr::ExpAndTy(
       new tr::ExExp(new tree::CallExp(new tree::NameExp(func_), arg_list)),
       fun_entry->result_);
@@ -303,7 +279,6 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                err::ErrorMsg *errormsg) const {
   auto left_exp_ty = left_->Translate(venv, tenv, level, label, errormsg);
   auto right_exp_ty = right_->Translate(venv, tenv, level, label, errormsg);
-  LOG_DEBUG("begin OpExp type:%d", oper_);
   if (oper_ == Oper::PLUS_OP || oper_ == Oper::MINUS_OP ||
       oper_ == Oper::TIMES_OP || oper_ == Oper::DIVIDE_OP) {
     tree::BinOp binop;
@@ -323,7 +298,6 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     default:
       assert(0);
     }
-    LOG_DEBUG("end OpExp type:%d", oper_);
     return new tr::ExpAndTy{
         new tr::ExExp{new tree::BinopExp{binop, left_exp_ty->exp_->UnEx(),
                                          right_exp_ty->exp_->UnEx()}},
@@ -450,10 +424,8 @@ tr::ExpAndTy *SeqExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::ExpAndTy *AssignExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
-  LOG_DEBUG("begin AssignExp");
   auto var_exp_ty = var_->Translate(venv, tenv, level, label, errormsg);
   auto exp_exp_ty = exp_->Translate(venv, tenv, level, label, errormsg);
-  LOG_DEBUG("end AssignExp");
   return new tr::ExpAndTy{
       new tr::NxExp{new tree::MoveStm(var_exp_ty->exp_->UnEx(),
                                       exp_exp_ty->exp_->UnEx())},
@@ -530,7 +502,6 @@ tr::ExpAndTy *WhileExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 tr::Level *level, temp::Label *label,
                                 err::ErrorMsg *errormsg) const {
-  LOG_DEBUG("begin ForExp");
   venv->BeginScope();
   auto loop_var_entry = new env::VarEntry(
       tr::Access::AllocLocal(level, escape_), type::IntTy::Instance(), true);
@@ -570,7 +541,6 @@ tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                             new std::vector<temp::Label *>{test_label}},
           new tree::SeqStm{body_label_stm, new tree::SeqStm{add_loop_var_stm,
                                                             test_label_stm}}}};
-  LOG_DEBUG("end ForExp");
   venv->EndScope();
   return new tr::ExpAndTy(new tr::NxExp(stm), type::VoidTy::Instance());
 }
@@ -578,7 +548,6 @@ tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::ExpAndTy *BreakExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                   tr::Level *level, temp::Label *label,
                                   err::ErrorMsg *errormsg) const {
-  LOG_DEBUG("break label %s", label->Name().c_str());
   return new tr::ExpAndTy(
       new tr::NxExp(new tree::JumpStm(new tree::NameExp(label),
                                       new std::vector<temp::Label *>{label})),
@@ -588,7 +557,6 @@ tr::ExpAndTy *BreakExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 tr::Level *level, temp::Label *label,
                                 err::ErrorMsg *errormsg) const {
-  LOG_DEBUG("LetExp level %s", level->frame_->name_->Name().c_str());
   if (decs_ && !decs_->GetList().empty()) {
     auto dec_list = decs_->GetList();
     tree::SeqStm *seq_stm = nullptr;
@@ -614,14 +582,12 @@ tr::ExpAndTy *ArrayExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                   tr::Level *level, temp::Label *label,
                                   err::ErrorMsg *errormsg) const {
   auto ty = tenv->Look(typ_)->ActualTy();
-  LOG_DEBUG("begin ArrayExp type:%s", debug::PrintTy(ty).c_str());
   auto size_exp_ty = size_->Translate(venv, tenv, level, label, errormsg);
   auto init_exp_ty = init_->Translate(venv, tenv, level, label, errormsg);
   auto args = new tree::ExpList{};
   args->Append(size_exp_ty->exp_->UnEx());
   args->Append(init_exp_ty->exp_->UnEx());
   auto call_exp = frame::ExternalCall("init_array", args);
-  LOG_DEBUG("end ArrayExp type:%s", debug::PrintTy(ty).c_str());
   return new tr::ExpAndTy(new tr::ExExp(call_exp), ty);
 }
 
@@ -651,9 +617,7 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     venv->Enter(fun_dec->name_, fun_entry);
   }
   for (const auto fun_dec : functions_->GetList()) {
-    LOG_DEBUG("begin FunDec name:%s", fun_dec->name_->Name().c_str());
     venv->BeginScope();
-    std::string log_param = "{";
     auto fun_entry = dynamic_cast<env::FunEntry *>(venv->Look(fun_dec->name_));
     auto param_it = fun_dec->params_->GetList().cbegin();
     // Warn staticlink
@@ -661,8 +625,6 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     access_it++;
     auto ty_it = fun_entry->formals_->GetList().cbegin();
     for (uint32_t i = 0; i < fun_dec->params_->GetList().size(); ++i) {
-      log_param +=
-          (*param_it)->name_->Name() + ":" + debug::PrintTy(*ty_it) + ", ";
       venv->Enter((*param_it)->name_,
                   new env::VarEntry(
                       new tr::Access(fun_entry->level_, *access_it), *ty_it));
@@ -670,8 +632,6 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       access_it++;
       ty_it++;
     }
-    log_param = log_param.substr(0, log_param.size() - 2);
-    log_param += "}";
     auto body_exp_ty = fun_dec->body_->Translate(venv, tenv, fun_entry->level_,
                                                  fun_entry->label_, errormsg);
     venv->EndScope();
@@ -681,9 +641,6 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
             new tree::MoveStm(new tree::TempExp(reg_manager->ReturnValue()),
                               body_exp_ty->exp_->UnEx())),
         fun_entry->level_->frame_});
-    LOG_DEBUG("end FunDec name:%s param:%s return:%s",
-              fun_dec->name_->Name().c_str(), log_param.c_str(),
-              debug::PrintTy(fun_entry->result_).c_str());
   }
   return new tr::ExExp(new tree::ConstExp(0));
 }
@@ -691,8 +648,6 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::Exp *VarDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                            tr::Level *level, temp::Label *label,
                            err::ErrorMsg *errormsg) const {
-  LOG_DEBUG("begin VarDec name:%s type:%s escape:%d", var_->Name().c_str(),
-            typ_ == nullptr ? "null" : typ_->Name().c_str(), escape_);
   auto init_exp_ty = init_->Translate(venv, tenv, level, label, errormsg);
   auto access = tr::Access::AllocLocal(level, escape_);
   venv->Enter(var_, new env::VarEntry{access, init_exp_ty->ty_->ActualTy()});
@@ -700,8 +655,6 @@ tr::Exp *VarDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       access->access_->ToExp(new tree::TempExp(reg_manager->FramePointer()));
   auto right_exp = init_exp_ty->exp_->UnEx();
   auto res = new tr::NxExp(new tree::MoveStm(left_exp, right_exp));
-  LOG_DEBUG("end VarDec name:%s type:%s", var_->Name().c_str(),
-            debug::PrintTy(init_exp_ty->ty_).c_str());
   return res;
 }
 
@@ -713,14 +666,10 @@ tr::Exp *TypeDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                 new type::NameTy(type_name_ty->name_, nullptr));
   }
   for (const auto type_name_ty : types_->GetList()) {
-    LOG_DEBUG("begin TypeDec name:%s", type_name_ty->name_->Name().c_str());
     auto name_ty =
         dynamic_cast<type::NameTy *>(tenv->Look(type_name_ty->name_));
     name_ty->ty_ = type_name_ty->ty_->Translate(tenv, errormsg);
     tenv->Set(type_name_ty->name_, name_ty);
-    LOG_DEBUG("end TypeDec name:%s type:%s",
-              type_name_ty->name_->Name().c_str(),
-              debug::PrintTy(name_ty->ty_).c_str());
   }
   return new tr::ExExp(new tree::ConstExp(0));
 }

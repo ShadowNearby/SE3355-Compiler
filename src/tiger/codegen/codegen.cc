@@ -1,8 +1,5 @@
 #include "tiger/codegen/codegen.h"
 
-#include "tiger/util/log.h"
-#include <cassert>
-#include <iostream>
 #include <sstream>
 
 extern frame::RegManager *reg_manager;
@@ -22,7 +19,6 @@ void CodeGen::Codegen() {
     stm->Munch(list, fs_);
   }
   *assem_instr_->GetInstrList() = list;
-  /* TODO: Put your lab5 code here */
 }
 void CodeGen::PushReg(assem::InstrList &instr_list, temp::Temp *reg) {
   instr_list.Append(new assem::MoveInstr{
@@ -126,7 +122,6 @@ void ExpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
 }
 
 temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   auto left = left_->Munch(instr_list, fs);
   auto right = right_->Munch(instr_list, fs);
   auto temp_val = temp::TempFactory::NewTemp();
@@ -247,7 +242,6 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 
 temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list,
                                    std::string_view fs) {
-  /* TODO: Put your lab5 code here */
   auto res = new temp::TempList{};
   auto arg_regs = reg_manager->ArgRegs();
   auto exp_it = exp_list_.cbegin();
@@ -273,9 +267,6 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list,
         "movq `s0, (`d0)", new temp::TempList{reg_manager->StackPointer()},
         new temp::TempList{exp->Munch(instr_list, fs)}});
   }
-  //  for (const auto exp : exp_list_) {
-  //    res->Append(exp->Munch(instr_list, fs));
-  //  }
   return res;
 }
 

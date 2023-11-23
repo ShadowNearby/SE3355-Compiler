@@ -70,7 +70,6 @@ protected:
 
 class Access {
 public:
-  /* TODO: Put your lab5 code here */
   enum class AccessType { REG, FRAME };
 
   explicit Access(AccessType type) : type_(type) {}
@@ -93,7 +92,6 @@ public:
     return new tree::MemExp(new tree::BinopExp(tree::BinOp::PLUS_OP, framePtr,
                                                new tree::ConstExp(offset)));
   }
-  /* TODO: Put your lab5 code here */
 };
 
 class InRegAccess : public Access {
@@ -106,11 +104,10 @@ public:
   tree::Exp *ToExp(tree::Exp *framePtr) const override {
     return new tree::TempExp(reg);
   }
-  /* TODO: Put your lab5 code here */
 };
 
 class Frame {
-  /* TODO: Put your lab5 code here */
+
 public:
   virtual ~Frame() = default;
 
@@ -177,7 +174,6 @@ private:
   std::list<Frag *> frags_;
 };
 
-/* TODO: Put your lab5 code here */
 assem::Proc *ProcEntryExit3(Frame *frame, assem::InstrList *body);
 assem::InstrList *ProcEntryExit2(assem::InstrList *body);
 tree::Stm *ProcEntryExit1(Frame *frame, tree::Stm *stm);

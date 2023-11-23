@@ -1,5 +1,4 @@
 #include "tiger/frame/x64frame.h"
-#include "tiger/util/log.h"
 #include <sstream>
 extern frame::RegManager *reg_manager;
 
@@ -78,7 +77,6 @@ temp::Temp *X64RegManager::GetRegister(std::string name) {
   return nullptr;
 }
 
-/* TODO: Put your lab5 code here */
 assem::Proc *ProcEntryExit3(Frame *frame, assem::InstrList *body) {
   std::stringstream prolog;
   auto name = frame->name_->Name();
