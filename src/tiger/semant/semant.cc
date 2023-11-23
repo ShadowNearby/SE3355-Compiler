@@ -1,5 +1,6 @@
 #include "tiger/semant/semant.h"
 #include "tiger/absyn/absyn.h"
+#include "tiger/util/log.h"
 #include <iostream>
 #include <set>
 namespace absyn {
@@ -21,7 +22,7 @@ type::Ty *SimpleVar::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 type::Ty *FieldVar::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                                int labelcount, err::ErrorMsg *errormsg) const {
-  auto var_ty = var_->SemAnalyze(venv, tenv, labelcount, errormsg);
+  auto var_ty = var_->SemAnalyze(venv, tenv, labelcount, errormsg)->ActualTy();
   if (typeid(*var_ty) != typeid(type::RecordTy)) {
     errormsg->Error(pos_, "not a record type");
     return type::VoidTy::Instance();
