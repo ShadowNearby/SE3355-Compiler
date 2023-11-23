@@ -14,8 +14,8 @@ namespace frame {
 class RegManager {
 public:
   RegManager() : temp_map_(temp::Map::Empty()) {}
-
   temp::Temp *GetRegister(int regno) { return regs_[regno]; }
+  [[nodiscard]] virtual temp::Temp *GetRegister(std::string name) = 0;
 
   /**
    * Get general-purpose registers except RSI

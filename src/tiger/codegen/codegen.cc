@@ -71,7 +71,7 @@ void CjumpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
   auto left = left_->Munch(instr_list, fs);
   auto right = right_->Munch(instr_list, fs);
   instr_list.Append(new assem::MoveInstr{
-      "cmpq `s0, `d0", new temp::TempList{right}, new temp::TempList{left}});
+      "cmpq `s0, `d0", new temp::TempList{left}, new temp::TempList{right}});
   auto targets =
       new assem::Targets{new std::vector<temp::Label *>{true_label_}};
   switch (op_) {
@@ -129,27 +129,40 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* TODO: Put your lab5 code here */
   auto left = left_->Munch(instr_list, fs);
   auto right = right_->Munch(instr_list, fs);
+  auto temp_val = temp::TempFactory::NewTemp();
   switch (op_) {
   case PLUS_OP:
-    instr_list.Append(new assem::OperInstr{"addq `s0, `d0",
-                                           new temp::TempList{right},
-                                           new temp::TempList{left}, nullptr});
-    return right;
+    instr_list.Append(new assem::MoveInstr{"movq `s0, `d0",
+                                           new temp::TempList{temp_val},
+                                           new temp::TempList{right}});
+    instr_list.Append(new assem::MoveInstr{"addq `s0, `d0",
+                                           new temp::TempList{temp_val},
+                                           new temp::TempList{left}});
+    return temp_val;
   case MINUS_OP:
-    instr_list.Append(new assem::OperInstr{"subq `s0, `d0",
-                                           new temp::TempList{right},
-                                           new temp::TempList{left}, nullptr});
-    return right;
+    instr_list.Append(new assem::MoveInstr{"movq `s0, `d0",
+                                           new temp::TempList{temp_val},
+                                           new temp::TempList{left}});
+    instr_list.Append(new assem::MoveInstr{"subq `s0, `d0",
+                                           new temp::TempList{temp_val},
+                                           new temp::TempList{right}});
+    return temp_val;
   case MUL_OP:
-    instr_list.Append(new assem::OperInstr{"imulq `s0, `d0",
-                                           new temp::TempList{right},
-                                           new temp::TempList{left}, nullptr});
-    return right;
+    instr_list.Append(new assem::MoveInstr{
+        "movq `s0, %rax", new temp::TempList{}, new temp::TempList{left}});
+    instr_list.Append(new assem::MoveInstr{"imulq `s0", new temp::TempList{},
+                                           new temp::TempList{right}});
+    instr_list.Append(new assem::MoveInstr{
+        "movq %rax, `d0", new temp::TempList{temp_val}, new temp::TempList{}});
+    return temp_val;
   case DIV_OP:
-    instr_list.Append(new assem::OperInstr{"idivq `s0, `d0",
-                                           new temp::TempList{right},
-                                           new temp::TempList{left}, nullptr});
-    return right;
+    instr_list.Append(new assem::MoveInstr{
+        "movq `s0, %rax", new temp::TempList{}, new temp::TempList{left}});
+    instr_list.Append(new assem::MoveInstr{"idivq `s0", new temp::TempList{},
+                                           new temp::TempList{right}});
+    instr_list.Append(new assem::MoveInstr{
+        "movq %rax, `d0", new temp::TempList{temp_val}, new temp::TempList{}});
+    return temp_val;
   case AND_OP:
     break;
   case OR_OP:
@@ -164,7 +177,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     break;
   case BIN_OPER_COUNT:
     break;
-  }
+  } // namespace tree
   return right;
 }
 
@@ -213,11 +226,6 @@ temp::Temp *ConstExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 
 temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   auto return_val = temp::TempFactory::NewTemp();
-  //  for (const auto &item : args_->GetList()) {
-  //    LOG_DEBUG("arg");
-  //    item->Print(stdout, 0);
-  //    std::cout << std::endl;
-  //  }
   auto arg_regs = args_->MunchArgs(instr_list, fs);
   instr_list.Append(
       new assem::MoveInstr("callq " + ((NameExp *)fun_)->name_->Name(),

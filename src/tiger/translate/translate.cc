@@ -488,10 +488,12 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
         new tree::SeqStm{new tree::LabelStm(true_label),
                          new tree::SeqStm{then_exp_ty->exp_->UnNx(),
                                           new tree::LabelStm(false_label)}}};
-    return new tr::ExpAndTy{new tr::NxExp(result_stm), then_exp_ty->ty_};
+    return new tr::ExpAndTy{new tr::NxExp(result_stm),
+                            type::VoidTy::Instance()};
   }
   auto else_exp_ty = elsee_->Translate(venv, tenv, level, label, errormsg);
   auto return_val = new tree::TempExp(temp::TempFactory::NewTemp());
+  auto done_label = temp::LabelFactory::NewLabel();
   auto result_stm = new tree::SeqStm{
       test_stm,
       new tree::SeqStm{
@@ -499,8 +501,15 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
           new tree::SeqStm{
               new tree::MoveStm{return_val, then_exp_ty->exp_->UnEx()},
               new tree::SeqStm{
-                  new tree::LabelStm(false_label),
-                  new tree::MoveStm{return_val, else_exp_ty->exp_->UnEx()}}}}};
+                  new tree::JumpStm(new tree::NameExp(done_label),
+                                    new std::vector<temp::Label *>{done_label}),
+                  new tree::SeqStm{
+                      new tree::LabelStm(false_label),
+                      new tree::SeqStm{
+                          new tree::MoveStm{return_val,
+                                            else_exp_ty->exp_->UnEx()},
+                          new tree::LabelStm{done_label}}}},
+          }}};
   return new tr::ExpAndTy{
       new tr::ExExp(new tree::EseqExp(result_stm, return_val)),
       then_exp_ty->ty_};
@@ -510,11 +519,11 @@ tr::ExpAndTy *WhileExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                   tr::Level *level, temp::Label *label,
                                   err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
-  auto test_exp_ty = test_->Translate(venv, tenv, level, label, errormsg);
-  auto body_exp_ty = body_->Translate(venv, tenv, level, label, errormsg);
   auto test_label = temp::LabelFactory::NewLabel();
   auto body_label = temp::LabelFactory::NewLabel();
   auto done_label = temp::LabelFactory::NewLabel();
+  auto test_exp_ty = test_->Translate(venv, tenv, level, label, errormsg);
+  auto body_exp_ty = body_->Translate(venv, tenv, level, done_label, errormsg);
   auto test_stm =
       new tree::CjumpStm{tree::NE_OP, test_exp_ty->exp_->UnEx(),
                          new tree::ConstExp(0), body_label, done_label};
@@ -540,17 +549,17 @@ tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   auto loop_var_entry = new env::VarEntry(
       tr::Access::AllocLocal(level, escape_), type::IntTy::Instance(), true);
   venv->Enter(var_, loop_var_entry);
+  auto body_label = temp::LabelFactory::NewLabel();
+  auto done_label = temp::LabelFactory::NewLabel();
+  auto test_label = temp::LabelFactory::NewLabel();
   auto lo_exp_ty = lo_->Translate(venv, tenv, level, label, errormsg);
   auto hi_exp_ty = hi_->Translate(venv, tenv, level, label, errormsg);
-  auto body_exp_ty = body_->Translate(venv, tenv, level, label, errormsg);
+  auto body_exp_ty = body_->Translate(venv, tenv, level, done_label, errormsg);
   auto limit_value_exp =
       new tr::ExExp(new tree::TempExp(temp::TempFactory::NewTemp()));
   auto loop_var_exp = new tr::ExExp(new tree::TempExp(
       dynamic_cast<frame::InRegAccess *>(loop_var_entry->access_->access_)
           ->reg));
-  auto body_label = temp::LabelFactory::NewLabel();
-  auto done_label = temp::LabelFactory::NewLabel();
-  auto test_label = temp::LabelFactory::NewLabel();
   auto init_loop_var_stm =
       new tree::MoveStm(loop_var_exp->UnEx(), lo_exp_ty->exp_->UnEx());
   auto init_limit_value_stm =
@@ -563,7 +572,7 @@ tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                         new tree::BinopExp(tree::PLUS_OP, loop_var_exp->UnEx(),
                                            new tree::ConstExp(1)));
   auto test_stm = new tree::SeqStm{
-      new tree::CjumpStm{tree::LT_OP, loop_var_exp->UnEx(),
+      new tree::CjumpStm{tree::LE_OP, loop_var_exp->UnEx(),
                          limit_value_exp->UnEx(), body_label, done_label},
       new tree::LabelStm(done_label)};
   auto test_label_stm =
@@ -584,6 +593,7 @@ tr::ExpAndTy *BreakExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                   tr::Level *level, temp::Label *label,
                                   err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
+  LOG_DEBUG("break label %s", label->Name().c_str());
   return new tr::ExpAndTy(
       new tr::NxExp(new tree::JumpStm(new tree::NameExp(label),
                                       new std::vector<temp::Label *>{label})),

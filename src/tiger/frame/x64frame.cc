@@ -42,6 +42,42 @@ temp::Temp *X64RegManager::StackPointer() { return rsp; }
 
 temp::Temp *X64RegManager::ReturnValue() { return rax; }
 
+temp::Temp *X64RegManager::GetRegister(std::string name) {
+  if (name == "rax")
+    return rax;
+  if (name == "rdi")
+    return rdi;
+  if (name == "rdi")
+    return rdi;
+  if (name == "rdx")
+    return rdx;
+  if (name == "rcx")
+    return rcx;
+  if (name == "r8")
+    return r8;
+  if (name == "r9")
+    return r9;
+  if (name == "r10")
+    return r10;
+  if (name == "r11")
+    return r11;
+  if (name == "rbx")
+    return rbx;
+  if (name == "rbp")
+    return rbp;
+  if (name == "r12")
+    return r12;
+  if (name == "r13")
+    return r13;
+  if (name == "r14")
+    return r14;
+  if (name == "r15")
+    return r15;
+  if (name == "rsp")
+    return rsp;
+  return nullptr;
+}
+
 /* TODO: Put your lab5 code here */
 assem::Proc *ProcEntryExit3(Frame *frame, assem::InstrList *body) {
   std::stringstream prolog;

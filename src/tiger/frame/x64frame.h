@@ -37,6 +37,7 @@ public:
   temp::Temp *FramePointer() override;
   temp::Temp *StackPointer() override;
   temp::Temp *ReturnValue() override;
+  temp::Temp *GetRegister(std::string name) override;
 
 private:
   temp::Temp *rax{temp::TempFactory::NewTemp()};
@@ -68,7 +69,7 @@ public:
   frame::Access *AllocLocal(bool escape) override {
     if (escape) {
       offset_ -= 8;
-      return new InFrameAccess(offset_ + 8);
+      return new InFrameAccess(offset_);
     }
     return new InRegAccess(temp::TempFactory::NewTemp());
   }
