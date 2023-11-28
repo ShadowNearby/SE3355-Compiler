@@ -5,18 +5,17 @@
 #include <memory>
 #include <string>
 
+#include "tiger/codegen/assem.h"
 #include "tiger/frame/temp.h"
 #include "tiger/translate/tree.h"
-#include "tiger/codegen/assem.h"
-
 
 namespace frame {
 
 class RegManager {
 public:
   RegManager() : temp_map_(temp::Map::Empty()) {}
-
   temp::Temp *GetRegister(int regno) { return regs_[regno]; }
+  [[nodiscard]] virtual temp::Temp *GetRegister(std::string name) = 0;
 
   /**
    * Get general-purpose registers except RSI
@@ -64,20 +63,63 @@ public:
   [[nodiscard]] virtual temp::Temp *ReturnValue() = 0;
 
   temp::Map *temp_map_;
+
 protected:
   std::vector<temp::Temp *> regs_;
 };
 
 class Access {
 public:
-  /* TODO: Put your lab5 code here */
-  
+  enum class AccessType { REG, FRAME };
+
+  explicit Access(AccessType type) : type_(type) {}
+
+  virtual tree::Exp *ToExp(tree::Exp *framePtr) const = 0;
+
   virtual ~Access() = default;
-  
+
+  AccessType type_;
+};
+
+class InFrameAccess : public Access {
+public:
+  int offset;
+
+  explicit InFrameAccess(int offset)
+      : offset(offset), Access(Access::AccessType::FRAME) {}
+
+  tree::Exp *ToExp(tree::Exp *framePtr) const override {
+    return new tree::MemExp(new tree::BinopExp(tree::BinOp::PLUS_OP, framePtr,
+                                               new tree::ConstExp(offset)));
+  }
+};
+
+class InRegAccess : public Access {
+public:
+  temp::Temp *reg;
+
+  explicit InRegAccess(temp::Temp *reg)
+      : reg(reg), Access(Access::AccessType::REG) {}
+
+  tree::Exp *ToExp(tree::Exp *framePtr) const override {
+    return new tree::TempExp(reg);
+  }
 };
 
 class Frame {
-  /* TODO: Put your lab5 code here */
+
+public:
+  virtual ~Frame() = default;
+
+  virtual frame::Access *AllocLocal(bool escape) = 0;
+
+  explicit Frame(temp::Label *label) : name_(label), offset_(0), formals_{} {}
+
+  [[nodiscard]] auto GetLabel() const -> std::string { return name_->Name(); }
+  [[nodiscard]] auto GetSize() const -> int { return -offset_; }
+  int offset_;
+  temp::Label *name_;
+  std::list<frame::Access *> formals_;
 };
 
 /**
@@ -97,7 +139,8 @@ public:
    *Generate assembly for main program
    * @param out FILE object for output assembly file
    */
-  virtual void OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const = 0;
+  virtual void OutputAssem(FILE *out, OutputPhase phase,
+                           bool need_ra) const = 0;
 };
 
 class StringFrag : public Frag {
@@ -125,14 +168,16 @@ class Frags {
 public:
   Frags() = default;
   void PushBack(Frag *frag) { frags_.emplace_back(frag); }
-  const std::list<Frag*> &GetList() { return frags_; }
+  const std::list<Frag *> &GetList() { return frags_; }
 
 private:
-  std::list<Frag*> frags_;
+  std::list<Frag *> frags_;
 };
 
-/* TODO: Put your lab5 code here */
-
+assem::Proc *ProcEntryExit3(Frame *frame, assem::InstrList *body);
+assem::InstrList *ProcEntryExit2(assem::InstrList *body);
+tree::Stm *ProcEntryExit1(Frame *frame, tree::Stm *stm);
+tree::Exp *ExternalCall(const std::string &func_name, tree::ExpList *args);
 } // namespace frame
 
 #endif

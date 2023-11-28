@@ -46,12 +46,15 @@ public:
   std::unique_ptr<AssemInstr> TransferAssemInstr() {
     return std::move(assem_instr_);
   }
+  static void PushReg(assem::InstrList &instr_list, temp::Temp *reg);
+  static void PopReg(assem::InstrList &instr_list, temp::Temp *reg);
 
 private:
   frame::Frame *frame_;
   std::string fs_; // Frame size label_
   std::unique_ptr<canon::Traces> traces_;
-  std::unique_ptr<AssemInstr> assem_instr_;
+  std::unique_ptr<AssemInstr> assem_instr_{
+      std::make_unique<AssemInstr>(new assem::InstrList())};
 };
 
 } // namespace cg
