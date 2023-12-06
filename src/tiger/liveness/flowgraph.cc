@@ -51,13 +51,21 @@ namespace assem {
 
 temp::TempList *LabelInstr::Def() const { return new temp::TempList{}; }
 
-temp::TempList *MoveInstr::Def() const { return dst_; }
+temp::TempList *MoveInstr::Def() const {
+  return dst_ ? dst_ : new temp::TempList{};
+}
 
-temp::TempList *OperInstr::Def() const { return dst_; }
+temp::TempList *OperInstr::Def() const {
+  return dst_ ? dst_ : new temp::TempList{};
+}
 
 temp::TempList *LabelInstr::Use() const { return new temp::TempList{}; }
 
-temp::TempList *MoveInstr::Use() const { return src_; }
+temp::TempList *MoveInstr::Use() const {
+  return src_ ? src_ : new temp::TempList{};
+}
 
-temp::TempList *OperInstr::Use() const { return src_; }
+temp::TempList *OperInstr::Use() const {
+  return src_ ? src_ : new temp::TempList{};
+}
 } // namespace assem
