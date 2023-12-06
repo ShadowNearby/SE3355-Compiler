@@ -9,5 +9,7 @@ namespace ra {
 RegAllocator::RegAllocator(frame::Frame *frame,
                            std::unique_ptr<cg::AssemInstr> instr) {}
 void RegAllocator::RegAlloc() {}
-std::unique_ptr<ra::Result> RegAllocator::TransferResult() { return {}; }
+std::unique_ptr<ra::Result> RegAllocator::TransferResult() {
+  return std::move(result_);
+}
 } // namespace ra
