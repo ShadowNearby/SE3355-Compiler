@@ -23,11 +23,15 @@ public:
   Result(Result &&result) = delete;
   Result &operator=(const Result &result) = delete;
   Result &operator=(Result &&result) = delete;
-  ~Result();
+  ~Result() = default;
 };
 
 class RegAllocator {
   /* TODO: Put your lab6 code here */
+public:
+  RegAllocator(frame::Frame *frame, std::unique_ptr<cg::AssemInstr> instr);
+  void RegAlloc();
+  std::unique_ptr<ra::Result> TransferResult();
 };
 
 } // namespace ra

@@ -14,11 +14,14 @@ namespace cg {
 
 void CodeGen::Codegen() {
   fs_ = frame_->GetLabel() + "_framesize";
-  auto list = assem::InstrList{};
+  auto list = new assem::InstrList{};
+  list->Append(new assem::MoveInstr("", reg_manager->ReturnSink(),
+                                    new temp::TempList{}));
   for (const auto stm : traces_->GetStmList()->GetList()) {
-    stm->Munch(list, fs_);
+    stm->Munch(*list, fs_);
   }
-  *assem_instr_->GetInstrList() = list;
+  list = frame::ProcEntryExit2(list);
+  assem_instr_ = std::make_unique<AssemInstr>(list);
 }
 void CodeGen::PushReg(assem::InstrList &instr_list, temp::Temp *reg) {
   instr_list.Append(new assem::MoveInstr{
