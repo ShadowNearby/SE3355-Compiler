@@ -30,27 +30,36 @@ class RegAllocator {
   /* TODO: Put your lab6 code here */
 private:
   std::unique_ptr<ra::Result> result_;
+  std::unique_ptr<cg::AssemInstr> instr_;
+  frame::Frame *frame_;
+  live::IGraphPtr interf_graph_{nullptr};
+  tab::Table<temp::Temp, live::INode> *temp_node_map_{nullptr};
 
-  live::INodeListPtr *precolored_;
-  live::INodeListPtr *initial_;
-  live::INodeListPtr *simplify_worklist_;
-  live::INodeListPtr *freeze_worklist_;
-  live::INodeListPtr *spill_worklist_;
-  live::INodeListPtr *spilled_nodes_;
-  live::INodeListPtr *coalesced_nodes_;
-  live::INodeListPtr *colored_nodes_;
-  live::INodeListPtr *selected_stack_;
+  live::INodeListPtr precolored_{new live::INodeList{}};
+  live::INodeListPtr initial_{new live::INodeList{}};
+  live::INodeListPtr simplify_worklist_{new live::INodeList{}};
+  live::INodeListPtr freeze_worklist_{new live::INodeList{}};
+  live::INodeListPtr spill_worklist_{new live::INodeList{}};
+  live::INodeListPtr spilled_nodes_{new live::INodeList{}};
+  live::INodeListPtr coalesced_nodes_{new live::INodeList{}};
+  live::INodeListPtr colored_nodes_{new live::INodeList{}};
+  live::INodeListPtr selected_stack_{new live::INodeList{}};
 
-  live::MoveList *coalesced_moves_;
-  live::MoveList *constrained_moves_;
-  live::MoveList *frozen_moves_;
-  live::MoveList *worklist_moves_;
-  live::MoveList *active_moves_;
+  live::MoveList *coalesced_moves_{new live::MoveList{}};
+  live::MoveList *constrained_moves_{new live::MoveList{}};
+  live::MoveList *frozen_moves_{new live::MoveList{}};
+  live::MoveList *worklist_moves_{new live::MoveList{}};
+  live::MoveList *active_moves_{new live::MoveList{}};
+  live::MoveList *adj_set_{new live::MoveList{}};
 
-  tab::Table<live::INode, int> *degree_;
-  tab::Table<live::INode, live::INode> *alias_;
-  tab::Table<live::INode, live::MoveList> *move_list_;
-  tab::Table<live::INode, col::Color> color_;
+  tab::Table<live::INode, int> *degree_{new tab::Table<live::INode, int>};
+  tab::Table<live::INode, live::INode> *alias_{
+      new tab::Table<live::INode, live::INode>};
+  tab::Table<live::INode, live::MoveList> *move_list_{
+      new tab::Table<live::INode, live::MoveList>};
+  col::Color color_;
+  tab::Table<live::INode, live::INodeList> *adj_list_{
+      new tab::Table<live::INode, live::INodeList>{}};
 
   void LivenessAnalysis();
   void Build();
@@ -59,17 +68,27 @@ private:
   void Coalesce();
   void Freeze();
   void SelectSpill();
-  void AssginColors();
-  void RewriteProgram();
+  void AssignColors();
+  void RewriteProgram(live::INodeListPtr nodes);
   void AddEdge(live::INodePtr u, live::INodePtr v);
-  void Adjacent(live::INodePtr n);
+  live::INodeListPtr Adjacent(live::INodePtr n);
   live::MoveList *NodeMoves(live::INodePtr n);
+  void DecrementDegree(live::INodePtr m);
+  void EnableMoves(live::INodeListPtr nodes);
+  void AddWorkList(live::INodePtr u);
+  bool OK(live::INodePtr t, live::INodePtr r);
+  bool Conservative(live::INodeListPtr nodes);
+  void Combine(live::INodePtr u, live::INodePtr v);
   bool MoveRelated(live::INodePtr n);
+  void FreezeMoves(live::INodePtr u);
+  live::INodePtr GetAlias(live::INodePtr n);
+  int K{};
 
 public:
   RegAllocator(frame::Frame *frame, std::unique_ptr<cg::AssemInstr> instr);
   void RegAlloc();
   std::unique_ptr<ra::Result> TransferResult();
+  ~RegAllocator();
 };
 
 } // namespace ra

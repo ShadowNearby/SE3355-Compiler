@@ -1,5 +1,5 @@
 #include "tiger/liveness/liveness.h"
-#include <set>
+#include "tiger/util/log.h"
 
 extern frame::RegManager *reg_manager;
 
@@ -100,7 +100,7 @@ void LiveGraphFactory::LiveMap() {
       curr_in_set.merge(curr_use_set);
       curr_in_set.merge(curr_def_set);
       auto prev_in_set = MakeSet(in_->Look(curr_node));
-      if (prev_in_set != curr_in_set || prev_out_set != curr_in_set) {
+      if (prev_in_set != curr_in_set || prev_out_set != curr_out_set) {
         finish = false;
         in_->Set(curr_node, MakeList(curr_in_set));
         out_->Set(curr_node, MakeList(curr_out_set));
@@ -131,13 +131,6 @@ void LiveGraphFactory::InterfGraph() {
   auto flowgraph_node_list = flowgraph_->Nodes()->GetList();
   for (const auto curr_node : flowgraph_node_list) {
     auto instr = curr_node->NodeInfo();
-    for (const auto temp : instr->Use()->GetList()) {
-      if (temp_node_map_->Look(temp)) {
-        continue;
-      }
-      auto node = interf_graph->NewNode(temp);
-      temp_node_map_->Enter(temp, node);
-    }
     for (const auto temp : instr->Def()->GetList()) {
       if (temp_node_map_->Look(temp)) {
         continue;
@@ -146,7 +139,7 @@ void LiveGraphFactory::InterfGraph() {
       temp_node_map_->Enter(temp, node);
     }
   }
-
+  flowgraph_node_list.reverse();
   for (const auto curr_node : flowgraph_node_list) {
     auto instr = curr_node->NodeInfo();
     auto def_list = instr->Def()->GetList();

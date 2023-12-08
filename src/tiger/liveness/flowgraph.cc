@@ -30,7 +30,7 @@ void FlowGraphFactory::AssemFlowGraph() {
   }
   for (const auto node : flowgraph_->Nodes()->GetList()) {
     auto instr = node->NodeInfo();
-    if (typeid(*prev_instr) != typeid(assem::OperInstr)) {
+    if (typeid(*instr) != typeid(assem::OperInstr)) {
       continue;
     }
     auto oper_instr = dynamic_cast<assem::OperInstr *>(instr);

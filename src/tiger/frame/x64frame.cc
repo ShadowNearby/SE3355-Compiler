@@ -5,8 +5,9 @@ extern frame::RegManager *reg_manager;
 namespace frame {
 
 temp::TempList *X64RegManager::Registers() {
-  static auto *list = new temp::TempList{rax, rdi, rsi, rdx, rcx, r8,  r9, r10,
-                                         r11, rbx, rbp, r12, r13, r14, r15};
+  static auto *list =
+      new temp::TempList{rax, rdi, rsi, rdx, rcx, r8,  r9,  r10,
+                         r11, rbx, rbp, r12, r13, r14, r15, rsp};
   return list;
 }
 

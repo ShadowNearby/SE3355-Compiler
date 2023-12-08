@@ -6,6 +6,7 @@
 #include "tiger/frame/x64frame.h"
 #include "tiger/liveness/flowgraph.h"
 #include "tiger/util/graph.h"
+#include <set>
 
 namespace live {
 
@@ -30,6 +31,7 @@ public:
   void Prepend(INodePtr src, INodePtr dst) {
     move_list_.emplace_front(src, dst);
   }
+  bool Empty() { return move_list_.empty(); }
   MoveList *Union(MoveList *list);
   MoveList *Intersect(MoveList *list);
 
@@ -67,7 +69,9 @@ private:
   void LiveMap();
   void InterfGraph();
 };
-
+std::set<temp::Temp *> MakeSet(temp::TempList *list);
+std::set<temp::Temp *> MakeSet(const std::list<temp::Temp *> &list);
+temp::TempList *MakeList(const std::set<temp::Temp *> &set);
 } // namespace live
 
 #endif
