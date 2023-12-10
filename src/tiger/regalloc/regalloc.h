@@ -29,8 +29,8 @@ public:
 class RegAllocator {
   /* TODO: Put your lab6 code here */
 private:
-  std::unique_ptr<ra::Result> result_;
-  std::unique_ptr<cg::AssemInstr> instr_;
+  //  std::unique_ptr<ra::Result> result_;
+  std::unique_ptr<cg::AssemInstr> assem_instr_;
   frame::Frame *frame_;
   live::IGraphPtr interf_graph_{nullptr};
   tab::Table<temp::Temp, live::INode> *temp_node_map_{nullptr};
@@ -69,7 +69,7 @@ private:
   void Freeze();
   void SelectSpill();
   void AssignColors();
-  void RewriteProgram(live::INodeListPtr nodes);
+  void RewriteProgram();
   void AddEdge(live::INodePtr u, live::INodePtr v);
   live::INodeListPtr Adjacent(live::INodePtr n);
   live::MoveList *NodeMoves(live::INodePtr n);
@@ -82,6 +82,8 @@ private:
   bool MoveRelated(live::INodePtr n);
   void FreezeMoves(live::INodePtr u);
   live::INodePtr GetAlias(live::INodePtr n);
+  void ClearAll();
+  void ClearCoalesceMove();
   int K{};
 
 public:

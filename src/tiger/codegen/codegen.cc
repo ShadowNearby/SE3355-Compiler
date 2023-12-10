@@ -135,10 +135,10 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   case PLUS_OP:
     instr_list.Append(new assem::MoveInstr{"movq `s0, `d0",
                                            new temp::TempList{temp_val},
-                                           new temp::TempList{right}});
+                                           new temp::TempList{left}});
     instr_list.Append(new assem::OperInstr{"addq `s0, `d0",
                                            new temp::TempList{temp_val},
-                                           new temp::TempList{left}, nullptr});
+                                           new temp::TempList{right}, nullptr});
     return temp_val;
   case MINUS_OP:
     instr_list.Append(new assem::MoveInstr{"movq `s0, `d0",
@@ -231,14 +231,11 @@ temp::Temp *ConstExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 }
 
 temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
-  auto return_val = temp::TempFactory::NewTemp();
+  //  auto return_val = temp::TempFactory::NewTemp();
   auto arg_regs = args_->MunchArgs(instr_list, fs);
   instr_list.Append(
       new assem::OperInstr("callq " + ((NameExp *)fun_)->name_->Name(),
                            reg_manager->CallerSaves(), arg_regs, nullptr));
-  instr_list.Append(
-      new assem::MoveInstr("movq `s0, `d0", new temp::TempList(return_val),
-                           new temp::TempList(reg_manager->ReturnValue())));
   auto arg_num = args_->GetList().size();
   static auto arg_reg_num = reg_manager->ArgRegs()->GetList().size();
   auto arg_stack_num = arg_num > arg_reg_num ? arg_num - arg_reg_num : 0;
@@ -249,7 +246,7 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
         new temp::TempList{reg_manager->StackPointer()}, new temp::TempList{},
         nullptr});
   }
-  return return_val;
+  return reg_manager->ReturnValue();
 }
 
 temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list,

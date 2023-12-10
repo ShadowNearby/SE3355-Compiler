@@ -106,7 +106,12 @@ public:
   void Prepend(Node<T> *n) { node_list_.push_front(n); }
   void Append(Node<T> *n) { node_list_.push_back(n); }
   bool Empty() { return node_list_.empty(); }
-
+  void PopBack() { node_list_.pop_back(); }
+  void Union(Node<T> *n) {
+    if (!Contain(n)) {
+      Append(n);
+    }
+  }
   // Set operation on two lists
   NodeList<T> *Union(NodeList<T> *nl);
   NodeList<T> *Diff(NodeList<T> *nl);
@@ -253,9 +258,10 @@ void Graph<T>::Show(FILE *out, NodeList<T> *p,
     assert(n);
     if (show_info)
       show_info(n->NodeInfo());
-    fprintf(out, " (%d): ", n->Key());
+    fprintf(out, " (%d):succ: ", n->Key());
     for (auto q : n->Succ()->node_list_)
       fprintf(out, "%d ", q->Key());
+    fprintf(out, "pred: ");
     for (auto q : n->Pred()->node_list_)
       fprintf(out, "%d ", q->Key());
     fprintf(out, "\n");

@@ -6,6 +6,7 @@
 #include "tiger/frame/x64frame.h"
 #include "tiger/liveness/flowgraph.h"
 #include "tiger/util/graph.h"
+#include "tiger/util/log.h"
 #include <set>
 
 namespace live {
@@ -32,8 +33,28 @@ public:
     move_list_.emplace_front(src, dst);
   }
   bool Empty() { return move_list_.empty(); }
+  void Clear() { move_list_.clear(); }
+  void Union(INodePtr src, INodePtr dst) {
+    if (!Contain(src, dst)) {
+      Append(src, dst);
+    }
+  }
   MoveList *Union(MoveList *list);
   MoveList *Intersect(MoveList *list);
+
+  void Dump(temp::Map *map) {
+    printf("Dump move list\n");
+    for (const auto &[src, dst] : move_list_) {
+      auto src_str = map->Look(src->NodeInfo())
+                         ? *map->Look(src->NodeInfo())
+                         : "t" + std::to_string(src->NodeInfo()->Int());
+
+      auto dst_str = map->Look(dst->NodeInfo())
+                         ? *map->Look(dst->NodeInfo())
+                         : "t" + std::to_string(dst->NodeInfo()->Int());
+      printf("movq %s -> %s\n", src_str.c_str(), dst_str.c_str());
+    }
+  }
 
 private:
   std::list<std::pair<INodePtr, INodePtr>> move_list_;

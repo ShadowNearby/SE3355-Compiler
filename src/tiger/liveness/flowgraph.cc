@@ -18,7 +18,7 @@ void FlowGraphFactory::AssemFlowGraph() {
       }
       if (typeid(*prev_instr) == typeid(assem::LabelInstr)) {
         auto label_instr = dynamic_cast<assem::LabelInstr *>(prev_instr);
-        label_map_->Enter(label_instr->label_, prev_node);
+        label_map_->Enter(label_instr->label_, curr_node);
         flowgraph_->AddEdge(prev_node, curr_node);
       }
       if (typeid(*prev_instr) == typeid(assem::MoveInstr)) {

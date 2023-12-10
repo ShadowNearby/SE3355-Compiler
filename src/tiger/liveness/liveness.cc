@@ -92,13 +92,12 @@ void LiveGraphFactory::LiveMap() {
       auto prev_out_set = MakeSet(out_->Look(curr_node));
       auto curr_def_set = MakeSet(curr_def_list);
       auto curr_use_set = MakeSet(curr_use_list);
-      auto diff_list = std::list<temp::Temp *>{};
+      auto diff_set = std::set<temp::Temp *>{};
       std::set_difference(prev_out_set.begin(), prev_out_set.end(),
                           curr_def_set.begin(), curr_def_set.end(),
-                          diff_list.begin());
-      auto diff_set = MakeSet(diff_list);
+                          std::inserter(diff_set, diff_set.begin()));
       curr_in_set.merge(curr_use_set);
-      curr_in_set.merge(curr_def_set);
+      curr_in_set.merge(diff_set);
       auto prev_in_set = MakeSet(in_->Look(curr_node));
       if (prev_in_set != curr_in_set || prev_out_set != curr_out_set) {
         finish = false;
@@ -138,6 +137,13 @@ void LiveGraphFactory::InterfGraph() {
       auto node = interf_graph->NewNode(temp);
       temp_node_map_->Enter(temp, node);
     }
+    for (const auto temp : instr->Use()->GetList()) {
+      if (temp_node_map_->Look(temp)) {
+        continue;
+      }
+      auto node = interf_graph->NewNode(temp);
+      temp_node_map_->Enter(temp, node);
+    }
   }
   flowgraph_node_list.reverse();
   for (const auto curr_node : flowgraph_node_list) {
@@ -150,6 +156,11 @@ void LiveGraphFactory::InterfGraph() {
         auto def_node = temp_node_map_->Look(def_temp);
         for (const auto out_temp : out_list) {
           auto out_node = temp_node_map_->Look(out_temp);
+          if (out_node == def_node) {
+            continue;
+          }
+          //          LOG_DEBUG("add edge %d %d", def_node->NodeInfo()->Int(),
+          //                    out_node->NodeInfo()->Int());
           interf_graph->AddEdge(def_node, out_node);
           interf_graph->AddEdge(out_node, def_node);
         }
@@ -160,11 +171,17 @@ void LiveGraphFactory::InterfGraph() {
       auto def_node = temp_node_map_->Look(def_temp);
       auto use_set = MakeSet(use_list);
       auto out_set = MakeSet(out_list);
-      auto diff_list = std::list<temp::Temp *>{};
+      auto diff_set = std::set<temp::Temp *>{};
       std::set_difference(out_set.begin(), out_set.end(), use_set.begin(),
-                          use_set.end(), diff_list.begin());
-      for (const auto diff_temp : diff_list) {
+                          use_set.end(),
+                          std::inserter(diff_set, diff_set.begin()));
+      for (const auto diff_temp : diff_set) {
         auto diff_node = temp_node_map_->Look(diff_temp);
+        if (diff_node == def_node) {
+          continue;
+        }
+        //        LOG_DEBUG("add edge %d %d", def_node->NodeInfo()->Int(),
+        //                  diff_node->NodeInfo()->Int());
         interf_graph->AddEdge(diff_node, def_node);
         interf_graph->AddEdge(def_node, diff_node);
       }

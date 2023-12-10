@@ -5,9 +5,8 @@ extern frame::RegManager *reg_manager;
 namespace frame {
 
 temp::TempList *X64RegManager::Registers() {
-  static auto *list =
-      new temp::TempList{rax, rdi, rsi, rdx, rcx, r8,  r9,  r10,
-                         r11, rbx, rbp, r12, r13, r14, r15, rsp};
+  static auto *list = new temp::TempList{rax, rbx, rcx, rdx, rsi, rdi, rbp, r8,
+                                         r9,  r10, r11, r12, r13, r14, r15};
   return list;
 }
 
@@ -17,8 +16,9 @@ temp::TempList *X64RegManager::ArgRegs() {
 }
 
 temp::TempList *X64RegManager::CallerSaves() {
-  static auto *list =
-      new temp::TempList{rax, rdi, rsi, rdx, rcx, r8, r9, r10, r11};
+  static auto *list = new temp::TempList{
+      rax, rcx, rdx, rsi, rdi, r8, r9, r10, r11,
+  };
   return list;
 }
 
@@ -102,8 +102,6 @@ assem::Proc *ProcEntryExit3(Frame *frame, assem::InstrList *body) {
          << "\n";
   epilog << "retq"
          << "\n";
-  epilog << ".END"
-         << "\n";
   return new assem::Proc(prolog.str(), body, epilog.str());
 }
 assem::InstrList *ProcEntryExit2(assem::InstrList *body) {
@@ -113,10 +111,18 @@ assem::InstrList *ProcEntryExit2(assem::InstrList *body) {
 }
 
 tree::Stm *ProcEntryExit1(Frame *frame, tree::Stm *stm) {
-  auto arg_reg_num = reg_manager->ArgRegs()->GetList().size();
-  auto formal_it = frame->formals_.cbegin();
   auto seq_stm = new tree::SeqStm{new tree::ExpStm(new tree::ConstExp(0)),
                                   new tree::ExpStm(new tree::ConstExp(0))};
+  auto *callee_saved = new temp::TempList();
+  for (auto reg : reg_manager->CalleeSaves()->GetList()) {
+    temp::Temp *dst = temp::TempFactory::NewTemp();
+    seq_stm =
+        new tree::SeqStm(seq_stm, new tree::MoveStm(new tree::TempExp(dst),
+                                                    new tree::TempExp(reg)));
+    callee_saved->Append(dst);
+  }
+  auto arg_reg_num = reg_manager->ArgRegs()->GetList().size();
+  auto formal_it = frame->formals_.cbegin();
   for (int i = 0; i < arg_reg_num && formal_it != frame->formals_.cend();
        ++i, ++formal_it) {
     auto formal = *formal_it;
@@ -131,6 +137,12 @@ tree::Stm *ProcEntryExit1(Frame *frame, tree::Stm *stm) {
         tree::PLUS_OP, new tree::TempExp(reg_manager->FramePointer()),
         new tree::ConstExp((i + 1) * reg_manager->WordSize())});
     seq_stm = new tree::SeqStm{seq_stm, new tree::MoveStm{dst, src}};
+  }
+  auto saved = callee_saved->GetList().cbegin();
+  for (auto reg : reg_manager->CalleeSaves()->GetList()) {
+    stm = new tree::SeqStm(stm, new tree::MoveStm(new tree::TempExp(reg),
+                                                  new tree::TempExp(*saved)));
+    ++saved;
   }
   return new tree::SeqStm{seq_stm, stm};
 }
