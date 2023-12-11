@@ -22,34 +22,7 @@ void RegAllocator::LivenessAnalysis() {
   temp_node_map_ = live_graph_factory.GetTempNodeMap();
   worklist_moves_ = live_graph.moves;
   interf_graph_ = live_graph.interf_graph;
-
   auto interf_graph_node_list = interf_graph_->Nodes()->GetList();
-  //  interf_graph_node_list.reverse();
-  auto reg_map = reg_manager->temp_map_;
-  for (const auto node : interf_graph_node_list) {
-    // init degree_
-    degree_->Enter(node, new int(node->OutDegree()));
-    bool precolor = reg_map->Look(node->NodeInfo());
-    if (precolor) {
-      // init precolored
-      precolored_->Union(node);
-    } else {
-      // init initial
-      initial_->Union(node);
-    }
-    //    auto node_adj_list = node->Adj()->GetList();
-    // init adj_set_
-    //    for (const auto adj_node : node_adj_list) {
-    //      if (adj_set_->Contain(node, adj_node)) {
-    //        adj_set_->Union(node, adj_node);
-    //        adj_set_->Union(adj_node, node);
-    //      }
-    //    }
-    // init adj_list_
-    //    if (!precolor) {
-    //      adj_list_->Enter(node, node->Adj());
-    //    }
-  }
   auto show_info = [](temp::Temp *t) {
     auto reg = reg_manager->temp_map_->Look(t);
     if (reg) {
@@ -58,13 +31,13 @@ void RegAllocator::LivenessAnalysis() {
       printf("%d", t->Int());
     }
   };
-  graph::Graph<temp::Temp>::Show(stdout, interf_graph_->Nodes(), show_info);
+  //  graph::Graph<temp::Temp>::Show(stdout, interf_graph_->Nodes(), show_info);
   //  live_graph.moves->Dump(reg_map);
 }
 void RegAllocator::Build() {
   auto interf_graph_node_list = interf_graph_->Nodes()->GetList();
   auto worklist_moves_list = worklist_moves_->GetList();
-  //  interf_graph_node_list.reverse();
+  auto reg_map = reg_manager->temp_map_;
   for (const auto node : interf_graph_node_list) {
     auto related_moves = new live::MoveList{};
     for (const auto &move : worklist_moves_list) {
@@ -74,19 +47,25 @@ void RegAllocator::Build() {
     }
     move_list_->Enter(node, related_moves);
     alias_->Enter(node, node);
+    degree_->Enter(node, new int(node->OutDegree()));
+    bool precolor = reg_map->Look(node->NodeInfo());
+    if (precolor) {
+      // init precolored
+      precolored_->Union(node);
+    } else {
+      // init initial
+      initial_->Union(node);
+    }
   }
 }
 void RegAllocator::MakeWorkList() {
   auto initial_list = initial_->GetList();
   for (const auto node : initial_list) {
     if (*degree_->Look(node) >= K) {
-      LOG_DEBUG("add %d to spill_worklist", node->NodeInfo()->Int());
       spill_worklist_->Union(node);
     } else if (MoveRelated(node)) {
-      LOG_DEBUG("add %d to freeze_worklist", node->NodeInfo()->Int());
       freeze_worklist_->Union(node);
     } else {
-      LOG_DEBUG("add %d to simplify_worklist", node->NodeInfo()->Int());
       simplify_worklist_->Union(node);
     }
   }
@@ -95,7 +74,6 @@ void RegAllocator::MakeWorkList() {
 void RegAllocator::Simplify() {
   auto n = simplify_worklist_->GetList().front();
   simplify_worklist_->DeleteNode(n);
-  LOG_DEBUG("simplify %d", n->NodeInfo()->Int());
   selected_stack_->Union(n);
   for (const auto m : Adjacent(n)->GetList()) {
     DecrementDegree(m);
@@ -129,8 +107,6 @@ void RegAllocator::Coalesce() {
               std::all_of(adjacent_v.begin(), adjacent_v.end(),
                           [&](const auto &t) { return OK(t, u); })) ||
              !precolor && Conservative(Adjacent(u)->Union(Adjacent(v)))) {
-    LOG_DEBUG("coalesced move from %d to %d", m.first->NodeInfo()->Int(),
-              m.second->NodeInfo()->Int());
     coalesced_moves_->Union(m.first, m.second);
     Combine(u, v);
     AddWorkList(u);
@@ -147,17 +123,22 @@ void RegAllocator::Freeze() {
 }
 void RegAllocator::SelectSpill() {
   // TODO
-  auto m = spill_worklist_->GetList().front();
-  spill_worklist_->DeleteNode(m);
-  simplify_worklist_->Union(m);
-  FreezeMoves(m);
+  if (spill_worklist_->GetList().empty())
+    return;
+  auto u = spill_worklist_->GetList().front();
+  for (auto t : spill_worklist_->GetList()) {
+    if (t->Degree() > u->Degree())
+      u = t;
+  }
+  spill_worklist_->DeleteNode(u);
+  simplify_worklist_->Union(u);
+  FreezeMoves(u);
 }
 void RegAllocator::AssignColors() {
   while (!selected_stack_->Empty()) {
     //    let n = pop(SelectStack)
     auto stack = selected_stack_->GetList();
     auto n = stack.back();
-    LOG_DEBUG("assigning %d", n->NodeInfo()->Int());
     selected_stack_->PopBack();
     // ok_colors <- {0...K-1}
     color_.ClearOKColor();
@@ -187,7 +168,6 @@ void RegAllocator::AssignColors() {
       colored_nodes_->Union(n);
       auto c = color_.FrontOKColor();
       color_.AssignColor(n->NodeInfo(), c);
-      LOG_DEBUG("assign %s to %d", (*c).c_str(), n->NodeInfo()->Int());
     }
   }
   //  forall n ∈ coalescedNodes
@@ -195,9 +175,6 @@ void RegAllocator::AssignColors() {
   for (const auto n : coalesced_nodes_->GetList()) {
     color_.AssignColor(n->NodeInfo(),
                        color_.LookColor(GetAlias(n)->NodeInfo()));
-    //    LOG_DEBUG("assign %s to %d alias:%d",
-    //              (*color_.LookColor(GetAlias(n)->NodeInfo())).c_str(),
-    //              n->NodeInfo()->Int(), GetAlias(n)->NodeInfo()->Int());
   }
 }
 void RegAllocator::RewriteProgram() {
@@ -213,9 +190,9 @@ void RegAllocator::RewriteProgram() {
     auto v_temp = v->NodeInfo();
     //  Create a new temporary vi for each definition and each use,
     auto vi = temp::TempFactory::NewTemp();
-    LOG_DEBUG("replace t%d to t%d", v_temp->Int(), vi->Int());
 
     for (const auto instr : assem_instr_->GetInstrList()->GetList()) {
+      assert(!precolored_->Contain(v));
       instr->Replace(v_temp, vi);
       auto use_list = instr->Use();
       if (use_list->Contain(vi)) {
@@ -361,7 +338,6 @@ void RegAllocator::Combine(live::INodePtr u, live::INodePtr v) {
   } else {
     spill_worklist_->DeleteNode(v);
   }
-  LOG_DEBUG("combine %d and %d", u->NodeInfo()->Int(), v->NodeInfo()->Int());
   coalesced_nodes_->Union(v);
   alias_->Enter(v, u);
   move_list_->Look(u)->Union(move_list_->Look(v));
@@ -399,8 +375,8 @@ void RegAllocator::ClearCoalesceMove() {
 }
 
 void RegAllocator::RegAlloc() {
-  ClearAll();
   LivenessAnalysis();
+  ClearAll();
   Build();
   MakeWorkList();
   do {
@@ -423,12 +399,40 @@ void RegAllocator::RegAlloc() {
   //  ClearCoalesceMove();
 }
 std::unique_ptr<ra::Result> RegAllocator::TransferResult() {
-  return std::make_unique<ra::Result>(color_.GetColorResult(),
-                                      assem_instr_->GetInstrList());
+  auto color = color_.GetColorResult();
+  RemoveRedundantMove(color);
+  return std::make_unique<ra::Result>(color, assem_instr_->GetInstrList());
 }
+
+void RegAllocator::RemoveRedundantMove(temp::Map *coloring) {
+  auto *new_instr_list = new assem::InstrList();
+  for (auto instr : assem_instr_->GetInstrList()->GetList()) {
+    if (typeid(*instr) != typeid(assem::MoveInstr)) {
+      new_instr_list->Append(instr);
+      continue;
+    }
+    auto move_instr = dynamic_cast<assem::MoveInstr *>(instr);
+    auto src = move_instr->src_;
+    auto dst = move_instr->dst_;
+    if (!src || !dst) {
+      new_instr_list->Append(instr);
+      continue;
+    }
+    if (src->GetList().size() != 1 || dst->GetList().size() != 1) {
+      new_instr_list->Append(instr);
+      continue;
+    }
+    auto src_color = coloring->Look(src->GetList().front());
+    auto dst_color = coloring->Look(dst->GetList().front());
+    if (src_color != dst_color) {
+      new_instr_list->Append(instr);
+      continue;
+    }
+  }
+  assem_instr_ = std::make_unique<cg::AssemInstr>(new_instr_list);
+}
+
 void RegAllocator::ClearAll() {
-  delete interf_graph_;
-  delete temp_node_map_;
 
   precolored_->Clear();
   initial_->Clear();
@@ -449,13 +453,9 @@ void RegAllocator::ClearAll() {
   delete degree_;
   delete alias_;
   delete move_list_;
-  delete adj_list_;
   degree_ = new tab::Table<live::INode, int>;
   alias_ = new tab::Table<live::INode, live::INode>;
   move_list_ = new tab::Table<live::INode, live::MoveList>;
-  adj_list_ = new tab::Table<live::INode, live::INodeList>;
-
-  color_.ClearAll();
 }
 RegAllocator::~RegAllocator() {
   delete precolored_;

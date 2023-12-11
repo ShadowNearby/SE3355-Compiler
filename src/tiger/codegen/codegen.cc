@@ -21,24 +21,6 @@ void CodeGen::Codegen() {
   list = frame::ProcEntryExit2(list);
   assem_instr_ = std::make_unique<AssemInstr>(list);
 }
-void CodeGen::PushReg(assem::InstrList &instr_list, temp::Temp *reg) {
-  instr_list.Append(new assem::OperInstr{
-      "subq $" + std::to_string(reg_manager->WordSize()) + ", `d0",
-      new temp::TempList{reg_manager->StackPointer()}, new temp::TempList{},
-      nullptr});
-  instr_list.Append(new assem::OperInstr{
-      "movq `s0, (`d0)", new temp::TempList{reg_manager->StackPointer()},
-      new temp::TempList{reg}, nullptr});
-}
-void CodeGen::PopReg(assem::InstrList &instr_list, temp::Temp *reg) {
-  instr_list.Append(new assem::OperInstr{
-      "movq (`s0), `d0", new temp::TempList{reg},
-      new temp::TempList{reg_manager->StackPointer()}, nullptr});
-  instr_list.Append(new assem::OperInstr{
-      "addq $" + std::to_string(reg_manager->WordSize()) + ", `d0",
-      new temp::TempList{reg_manager->StackPointer()}, new temp::TempList{},
-      nullptr});
-}
 
 void AssemInstr::Print(FILE *out, temp::Map *map) const {
   for (auto instr : instr_list_->GetList())
@@ -131,6 +113,8 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   auto left = left_->Munch(instr_list, fs);
   auto right = right_->Munch(instr_list, fs);
   auto temp_val = temp::TempFactory::NewTemp();
+  auto rax = reg_manager->GetRegister("rax");
+  auto rdx = reg_manager->GetRegister("rdx");
   switch (op_) {
   case PLUS_OP:
     instr_list.Append(new assem::MoveInstr{"movq `s0, `d0",
@@ -150,23 +134,26 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     return temp_val;
   case MUL_OP:
     instr_list.Append(new assem::MoveInstr{
-        "movq `s0, `d0", new temp::TempList{reg_manager->GetRegister("rax")},
-        new temp::TempList{left}});
-    instr_list.Append(new assem::OperInstr{"imulq `s0", new temp::TempList{},
-                                           new temp::TempList{right}, nullptr});
-    instr_list.Append(new assem::MoveInstr{
-        "movq `s0, `d0", new temp::TempList{temp_val},
-        new temp::TempList{reg_manager->GetRegister("rax")}});
+        "movq `s0, `d0", new temp::TempList{rax}, new temp::TempList{left}});
+    instr_list.Append(
+        new assem::OperInstr{"imulq `s0", new temp::TempList{rax, rdx},
+                             new temp::TempList{right, rax}, nullptr});
+    instr_list.Append(new assem::MoveInstr{"movq `s0, `d0",
+                                           new temp::TempList{temp_val},
+                                           new temp::TempList{rax}});
     return temp_val;
   case DIV_OP:
     instr_list.Append(new assem::MoveInstr{
-        "movq `s0, `d0", new temp::TempList{reg_manager->GetRegister("rax")},
-        new temp::TempList{left}});
-    instr_list.Append(new assem::OperInstr{"idivq `s0", new temp::TempList{},
-                                           new temp::TempList{right}, nullptr});
-    instr_list.Append(new assem::MoveInstr{
-        "movq `s0, `d0", new temp::TempList{temp_val},
-        new temp::TempList{reg_manager->GetRegister("rax")}});
+        "movq `s0, `d0", new temp::TempList{rax}, new temp::TempList{left}});
+    instr_list.Append(new assem::OperInstr("cqto",
+                                           new temp::TempList({rax, rdx}),
+                                           new temp::TempList(rax), nullptr));
+    instr_list.Append(
+        new assem::OperInstr{"idivq `s0", new temp::TempList{rax, rdx},
+                             new temp::TempList{right, rax, rdx}, nullptr});
+    instr_list.Append(new assem::MoveInstr{"movq `s0, `d0",
+                                           new temp::TempList{temp_val},
+                                           new temp::TempList{rax}});
     return temp_val;
   case AND_OP:
     break;

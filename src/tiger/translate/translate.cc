@@ -669,7 +669,7 @@ tr::Exp *TypeDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     auto name_ty =
         dynamic_cast<type::NameTy *>(tenv->Look(type_name_ty->name_));
     name_ty->ty_ = type_name_ty->ty_->Translate(tenv, errormsg);
-    tenv->Set(type_name_ty->name_, name_ty);
+    tenv->Enter(type_name_ty->name_, name_ty);
   }
   return new tr::ExExp(new tree::ConstExp(0));
 }

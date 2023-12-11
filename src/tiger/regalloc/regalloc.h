@@ -84,6 +84,7 @@ private:
   live::INodePtr GetAlias(live::INodePtr n);
   void ClearAll();
   void ClearCoalesceMove();
+  void RemoveRedundantMove(temp::Map *coloring);
   int K{};
 
 public:
