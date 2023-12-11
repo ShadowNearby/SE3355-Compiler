@@ -122,7 +122,6 @@ void RegAllocator::Freeze() {
   FreezeMoves(u);
 }
 void RegAllocator::SelectSpill() {
-  // TODO
   if (spill_worklist_->GetList().empty())
     return;
   auto u = spill_worklist_->GetList().front();
