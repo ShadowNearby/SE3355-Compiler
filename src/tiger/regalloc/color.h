@@ -5,7 +5,7 @@
 #include "tiger/frame/temp.h"
 #include "tiger/liveness/liveness.h"
 #include "tiger/util/graph.h"
-#include "tiger/util/log.h"
+// #include "tiger/util/log.h"
 
 namespace col {
 struct Result {

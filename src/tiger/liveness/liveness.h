@@ -6,7 +6,7 @@
 #include "tiger/frame/x64frame.h"
 #include "tiger/liveness/flowgraph.h"
 #include "tiger/util/graph.h"
-#include "tiger/util/log.h"
+// #include "tiger/util/log.h"
 #include <set>
 
 namespace live {

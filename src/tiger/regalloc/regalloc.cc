@@ -1,7 +1,7 @@
 #include "tiger/regalloc/regalloc.h"
 
 #include "tiger/output/logger.h"
-#include "tiger/util/log.h"
+// #include "tiger/util/log.h"
 extern frame::RegManager *reg_manager;
 
 namespace ra {
